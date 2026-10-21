@@ -39,3 +39,20 @@ Les conditions d'utilisation, limites d'API, licences et attributions de chaque 
 
 ### Reproduction
 `node --check app.js && node --test tests/*.test.cjs` puis `python -m http.server 8080`. Vérifier les quatre routes, la suppression cookie, `Ctrl + molette`, et la couche thermique. La CI ne remplace pas un test E2E Playwright.
+
+## Iteration : qualité visuelle et interactions (2026-10)
+
+### Design system et reproductibilité
+Référence explicite : [GitHub Primer](https://primer.style/) (navigation par onglets, composants boutons/menus, échelles d'espacement, surfaces, états focus et bordures). Atlas Live est une interprétation originale : aucun logo GitHub, actif propriétaire, ni code Primer copié. Les captures de référence étaient la page de dépôt GitHub fournie lors de la revue UI. Les composants CSS Atlas concernés : `global-header`, `weather-tabs`, `controls-panel`, `city-suggestions`, `day`, `heat-legend`. Les ajouts responsive ciblent les dimensions 360, 390, 600, 768, 900, 1024 et 1440 px, avec vérification de débordement horizontal et préservation du scroll vertical.
+
+### Choix fonctionnels
+- Recherche de ville : liste populaire initiale (10 villes) + autocomplétion Open-Meteo après 280 ms pour éviter les requêtes par frappe. Sélection au clic/clavier, description pays, position sauvegardée dans le cookie fonctionnel déjà en place.
+- Carte thermique : échantillonnage de la zone visible et interpolation, identique à la version antérieure ; les `moveend` Leaflet et le clic redéclenchent le calcul après 450 ms de *debounce*. Requêtes concurrentes invalidées par un identifiant croissant. La correspondance couleurs/degrés utilise six repères numériques entre min et max ; cette échelle est **relative à la zone**, pas universelle.
+- Prévisions : chaque vignette quotidienne est un bouton avec `aria-pressed`, sélection de la journée et filtrage des 24 points horaires correspondants. L'état de sélection influe sur le panneau résumé et le graphique.
+- Brouillard : glyphe ≋ plutôt qu'une émoticône ambiguë, accompagné du libellé « Brouillard » accessible aux lecteurs d'écran.
+- Limite importante : les données du jour choisi sont une **prévision quotidienne**, et ne doivent pas être confondues avec les conditions actuelles.
+
+### Tests de navigateur
+`npm install && npx playwright install chromium && npm run test:e2e`
+
+Playwright démarre un serveur HTTP local et teste Chromium aux tailles desktop, tablette et mobile. Les requêtes Open-Meteo sont simulées dans les tests pour des résultats reproductibles. Les captures, traces et vidéos d'erreurs sont publiées dans les artefacts `atlas-playwright-report` de chaque exécution GitHub Actions et conservées 14 jours. Cela teste la logique DOM, le resize, les interactions et l'intégration de la couche Leaflet, mais **pas** la disponibilité réelle des données Open-Meteo en production ; vérifier séparément les flux réels après déploiement.
