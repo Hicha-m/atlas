@@ -1,9 +1,9 @@
 # Architecture — état actuel
 
-- Site statique : `index.html`, `styles.css`, `app.js`.
+- Site statique : `index.html`, `styles.css`, `app.js`, modules isolés `electricity.js`, `electricity-data.js`, `electricity.css`.
 - Routage via fragments (`#/weather`) pour déploiement sans réécriture serveur.
 - Open-Meteo est appelé depuis le navigateur. Les données météo ne sont pas garanties comme mesures physiques instantanées.
-- Les 14 autres modules sont des placeholders explicites, pas des fonctionnalités actives.
+- Les 13 autres modules sont des placeholders explicites, pas des fonctionnalités actives.
 - CI (`.github/workflows/ci.yml`) : syntaxe, tests Node intégrés, contrôle HTTP local.
 - Déploiement cible : Vercel avec intégration GitHub, production depuis `main`, previews via PR.
 
@@ -56,3 +56,11 @@ Référence explicite : [GitHub Primer](https://primer.style/) (navigation par o
 `npm install && npx playwright install chromium && npm run test:e2e`
 
 Playwright démarre un serveur HTTP local et teste Chromium aux tailles desktop, tablette et mobile. Les requêtes Open-Meteo sont simulées dans les tests pour des résultats reproductibles. Les captures, traces et vidéos d'erreurs sont publiées dans les artefacts `atlas-playwright-report` de chaque exécution GitHub Actions et conservées 14 jours. Cela teste la logique DOM, le resize, les interactions et l'intégration de la couche Leaflet, mais **pas** la disponibilité réelle des données Open-Meteo en production ; vérifier séparément les flux réels après déploiement.
+
+## Module 02 — Électricité nationale
+
+Voir [docs/ELECTRICITY.md](ELECTRICITY.md) pour les schémas, règles métier, références RTE/ODRE, quotas, calculs de puissance, modèle de fraîcheur, limites et tests.
+
+L'architecture ajoute un module ES chargé dynamiquement par le routeur Atlas : quatre pages, état et cache client, séparation entre données normalisées (electricity-data.js) et présentation (electricity.js). Les filières de génération sont agrégées séparément des consommations de pompage et échanges physiques. L'accès public ne nécessite pas de secret en JavaScript. Les flux ont une date et un statut de fraîcheur visibles.
+
+La DA reste inspirée de [Primer de GitHub](https://primer.style/) : même vocabulaire de panneaux, densité et éléments de navigation, implémentation et identité propres à Atlas.
