@@ -74,7 +74,7 @@ test('data table is interactive and JSON/CSV exports include metadata',async({pa
   await mockRte(page);
   await page.goto('/#/electricity/data');
   await expect(page.locator('.elec-table-row').first()).toBeVisible();
-  await expect(page.locator('.elec-table-row').count()).resolves.toBeGreaterThan(20);
+  expect(await page.locator('.elec-table-row').count()).toBeGreaterThan(20);
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#electricity-csv').click()]);
   expect(download.suggestedFilename()).toMatch(/atlas-electricite-france.*\.csv/);
   await page.locator('.elec-table-row').nth(4).click();
