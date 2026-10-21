@@ -20,6 +20,8 @@ const safe = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 let weatherMap=null, weatherMarker=null, weatherRequest=0, heatRequest=0, heatOverlay=null;
 const WEATHER_PAGES=['overview','map','heatmap','data'];
 let currentWeatherPage='overview';
+let selectedForecastDay=null, citySearchTimer=null, citySearchSequence=0, heatRefreshTimer=null;
+const FEATURED_CITIES=[{name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},{name:'Paris',country:'France',latitude:48.8566,longitude:2.3522},{name:'Lyon',country:'France',latitude:45.764,longitude:4.8357},{name:'Toulouse',country:'France',latitude:43.6047,longitude:1.4442},{name:'Bordeaux',country:'France',latitude:44.8378,longitude:-0.5792},{name:'Lille',country:'France',latitude:50.6292,longitude:3.0573},{name:'Rome',country:'Italie',latitude:41.9028,longitude:12.4964},{name:'Londres',country:'Royaume-Uni',latitude:51.5072,longitude:-0.1276},{name:'Berlin',country:'Allemagne',latitude:52.52,longitude:13.405},{name:'New York',country:'États-Unis',latitude:40.7128,longitude:-74.006}];
 function weatherPageFromHash(hash){const page=hash.split('/')[1]||'overview';return WEATHER_PAGES.includes(page)?page:'overview';}
 function savedWeatherLocation(){try{const m=document.cookie.match(/(?:^|; )atlas_weather_location=([^;]*)/);if(!m)return null;const p=JSON.parse(decodeURIComponent(m[1]));if(!Number.isFinite(p.latitude)||!Number.isFinite(p.longitude)||Math.abs(p.latitude)>90||Math.abs(p.longitude)>180)return null;return {name:String(p.name||'Position enregistrée').slice(0,100),country:String(p.country||'').slice(0,100),latitude:p.latitude,longitude:p.longitude};}catch{return null;}}
 function rememberWeatherLocation(){document.cookie='atlas_weather_location='+encodeURIComponent(JSON.stringify(city))+'; Max-Age=15552000; Path=/; SameSite=Lax';}
@@ -28,7 +30,7 @@ let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longi
 function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${m[0]==='weather'?'<small>●</small>':''}</a>`).join(''); }
 function render(){
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
- heatRequest++;
+ clearTimeout(heatRefreshTimer);clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
  let id=decodeURIComponent(location.hash.startsWith('#/')?location.hash.slice(2):'');
  const root=id.split('/')[0]||'';
  nav();
@@ -44,12 +46,13 @@ function weatherView(){
  const tabs=[['overview','◫','Vue d’ensemble'],['map','◉','Carte interactive'],['heatmap','◈','Carte des chaleurs'],['data','▤','Données horaires']];
  $('#app').innerHTML=`<div class="repo-heading"><div class="repo-title"><span class="repo-icon">☁</span><div><div class="repo-eyebrow">Atlas Live / Module 01</div><h1>Météo mondiale <span class="state-pill">Actif</span></h1><p>Prévisions ouvertes, cartes interactives et données exportables.</p></div></div><div class="actions"><button class="btn" id="exportjson">↓ JSON</button><button class="btn" id="exportcsv">↓ CSV</button><button class="btn" id="refresh">↻ Actualiser</button></div></div>
  <nav class="weather-tabs" aria-label="Vues du module météo">${tabs.map(([key,icon,label])=>`<a href="#/weather/${key}" class="weather-tab ${p===key?'selected':''}" ${p===key?'aria-current="page"':''}><span class="tab-icon">${icon}</span>${label}</a>`).join('')}</nav>
- <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Rechercher une ville" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
+ <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Chercher ou choisir une ville" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /><div id="city-suggestions" class="city-suggestions" role="listbox" hidden></div></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
  ${p==='overview'||p==='map'? `<section class="panel map-panel"><div class="map-heading"><div><h3>${p==='map'?'Explorer la carte':'Localiser un point'}</h3><p>Cliquez sur un lieu pour ses prévisions. Ctrl + molette pour zoomer.</p></div><div id="coordinates" class="coordinates"></div></div><div id="weather-map" class="${p==='map'?'map-full':''}" aria-label="Carte mondiale interactive"></div><div class="map-help">© OpenStreetMap contributors · La dernière position est retenue 180 jours dans un cookie fonctionnel.</div></section>`:''}
- ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><p class="map-help">Déplacez ou zoomez la carte, puis cliquez sur « Actualiser la zone ». Cliquez sur un point pour consulter sa météo. Les valeurs sont modélisées et interpolées, pas relevées en continu.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
+ ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><div id="heat-scale" class="heat-scale" aria-label="Correspondance couleurs et températures">Échelle en chargement…</div><p class="map-help">Déplacez, zoomez ou cliquez sur la carte : la couche thermique se met à jour automatiquement. Les valeurs sont modélisées et interpolées, pas relevées en continu.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
  <div id="result"></div>
  <div class="panel sources"><strong>Données & confidentialité</strong><p>Météo : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Carte : <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Un cookie strictement fonctionnel atlas_weather_location conserve uniquement votre dernière position sélectionnée. Le bouton « Oublier ma position » le supprime. Aucune géolocalisation automatique.</p></div>`;
  $('#searchform').addEventListener('submit',searchCity);
+ initCityPicker();
  $('#refresh').onclick=()=>p==='heatmap'?loadHeatmap():loadWeather();
  $('#exportjson').onclick=()=>exportData('json');
  $('#exportcsv').onclick=()=>exportData('csv');
@@ -71,18 +74,78 @@ function initWeatherMap(){
  weatherMap.on('click',async ({latlng})=>{
    city={name:'Point sélectionné',country:'Coordonnées GPS',latitude:+latlng.lat.toFixed(5),longitude:+latlng.lng.toFixed(5)};
    $('#city').value=''; updateCoordinates();
-   weatherMarker.setLatLng(latlng);rememberWeatherLocation();
+   weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
    await loadWeather();
  });
+ if(currentWeatherPage==='heatmap'){weatherMap.on('moveend',scheduleHeatmap);el.addEventListener('click',()=>{clearTimeout(heatRefreshTimer);loadHeatmap();},true);}
  setTimeout(()=>weatherMap?.invalidateSize(),0);
 }
 function updateCoordinates(){const el=$('#coordinates');if(el)el.textContent=city.latitude.toFixed(4)+'°, '+city.longitude.toFixed(4)+'°';}
-async function searchCity(e){e.preventDefault();const name=$('#city').value.trim();if(!name)return;status('Recherche de la ville…');try{const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=fr&format=json`);if(!r.ok)throw Error(`API localisation : HTTP ${r.status}`);const data=await r.json();if(!data.results?.length)throw Error('Aucune ville trouvée. Essayez une autre recherche.');const c=data.results[0];city={name:c.name,country:c.country,latitude:c.latitude,longitude:c.longitude};$('#city').value=city.name;rememberWeatherLocation();updateCoordinates();if(weatherMap){weatherMap.setView([city.latitude,city.longitude],9);weatherMarker?.setLatLng([city.latitude,city.longitude]);}await loadWeather();}catch(err){status(err.message,true);}}
-async function loadWeather(){const requestId=++weatherRequest;const n=$('#days')?.value||7;status('Récupération des prévisions…');try{const params=new URLSearchParams({latitude:city.latitude,longitude:city.longitude,timezone:'auto',forecast_days:n,current:'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',hourly:'temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m',daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum'});const r=await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);if(!r.ok)throw Error(`API météo : HTTP ${r.status}`);const response=await r.json();if(requestId!==weatherRequest)return;weather=response;lastUpdate=new Date();showWeather();status(`✓ Données chargées à ${lastUpdate.toLocaleTimeString('fr-FR')} · ${city.name}, ${city.country} · Fuseau : ${weather.timezone}`);}catch(err){if(requestId===weatherRequest)status(`Erreur : ${err.message}`,true);}}
+function applyCity(candidate){
+ city={name:candidate.name,country:candidate.country||'',latitude:candidate.latitude,longitude:candidate.longitude};
+ selectedForecastDay=null;
+ $('#city').value=city.name;hideCitySuggestions();rememberWeatherLocation();updateCoordinates();
+ if(weatherMap){weatherMap.setView([city.latitude,city.longitude],9);weatherMarker?.setLatLng([city.latitude,city.longitude]);}
+ loadWeather();if(currentWeatherPage==='heatmap')scheduleHeatmap();
+}
+function hideCitySuggestions(){const list=$('#city-suggestions'),field=$('#city');if(list)list.hidden=true;if(field)field.setAttribute('aria-expanded','false');}
+function showCitySuggestions(items){
+ const list=$('#city-suggestions'),input=$('#city');if(!list||!input)return;
+ list.replaceChildren();
+ items.forEach((c,index)=>{
+  const item=document.createElement('button');item.type='button';item.className='city-option';item.setAttribute('role','option');item.id='city-option-'+index;
+  item.textContent=c.name+' · '+(c.country||'');
+  item.addEventListener('mousedown',e=>e.preventDefault());
+  item.addEventListener('click',()=>applyCity(c));list.appendChild(item);
+ });
+ list.hidden=items.length===0;input.setAttribute('aria-expanded',String(items.length>0));
+}
+function initCityPicker(){
+ const input=$('#city');if(!input)return;
+ const featured=()=>FEATURED_CITIES.filter(c=>c.name.toLowerCase().includes(input.value.trim().toLowerCase()));
+ input.addEventListener('focus',()=>showCitySuggestions(featured()));
+ input.addEventListener('input',()=>{
+  clearTimeout(citySearchTimer);const query=input.value.trim(),serial=++citySearchSequence;
+  showCitySuggestions(featured());
+  if(query.length<2)return;
+  citySearchTimer=setTimeout(async()=>{
+   try{const response=await fetch('https://geocoding-api.open-meteo.com/v1/search?'+new URLSearchParams({name:query,count:8,language:'fr',format:'json'}));
+    if(!response.ok)throw Error('Recherche indisponible');
+    const data=await response.json();if(serial!==citySearchSequence)return;
+    const cities=(data.results||[]).map(c=>({name:c.name,country:c.country,latitude:c.latitude,longitude:c.longitude}));
+    showCitySuggestions(cities.length?cities:featured());
+   }catch{if(serial===citySearchSequence)showCitySuggestions(featured());}
+  },280);
+ });
+ input.addEventListener('keydown',event=>{
+  const list=$('#city-suggestions'),items=[...(list?.querySelectorAll('.city-option')||[])];
+  if(event.key==='Escape')hideCitySuggestions();
+  if(event.key==='ArrowDown'&&items.length){event.preventDefault();items[0].focus();}
+ });
+ $('#city-suggestions')?.addEventListener('keydown',e=>{
+  const items=[...$('#city-suggestions').querySelectorAll('.city-option')],index=items.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'){e.preventDefault();items[(index+1)%items.length]?.focus();}
+  if(e.key==='ArrowUp'){e.preventDefault();items[(index-1+items.length)%items.length]?.focus();}
+  if(e.key==='Escape'){hideCitySuggestions();input.focus();}
+ });
+ document.addEventListener('pointerdown',event=>{if(!input.isConnected)return;if(!event.target.closest('.control.city'))hideCitySuggestions();});
+}
+
+async function searchCity(e){
+ e.preventDefault();const name=$('#city').value.trim();if(!name)return;
+ hideCitySuggestions();status('Recherche de la ville…');
+ try{const response=await fetch('https://geocoding-api.open-meteo.com/v1/search?'+new URLSearchParams({name,count:1,language:'fr',format:'json'}));
+  if(!response.ok)throw Error('API localisation : HTTP '+response.status);
+  const data=await response.json();if(!data.results?.length)throw Error('Aucune ville trouvée.');
+  applyCity(data.results[0]);
+ }catch(error){status(error.message,true);}
+}
+function scheduleHeatmap(){clearTimeout(heatRefreshTimer);heatRefreshTimer=setTimeout(()=>{if(currentWeatherPage==='heatmap'&&weatherMap)loadHeatmap();},450);}
+async function loadWeather(){const requestId=++weatherRequest;const n=$('#days')?.value||7;status('Récupération des prévisions…');try{const params=new URLSearchParams({latitude:city.latitude,longitude:city.longitude,timezone:'auto',forecast_days:n,current:'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',hourly:'temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m',daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum'});const r=await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);if(!r.ok)throw Error(`API météo : HTTP ${r.status}`);const response=await r.json();if(requestId!==weatherRequest)return;weather=response;if(selectedForecastDay&&!weather.daily.time.includes(selectedForecastDay))selectedForecastDay=null;lastUpdate=new Date();showWeather();status(`✓ Données chargées à ${lastUpdate.toLocaleTimeString('fr-FR')} · ${city.name}, ${city.country} · Fuseau : ${weather.timezone}`);}catch(err){if(requestId===weatherRequest)status(`Erreur : ${err.message}`,true);}}
 function status(msg,isError=false){const el=$('#status');if(el){el.textContent=msg;el.className='message'+(isError?' error':'');}}
-const conditions=code=>code===0?['☀️','Ciel dégagé']:code<=3?['⛅','Nuageux']:code<=48?['🌫️','Brouillard']:code<=67?['🌧️','Pluie']:code<=77?['❄️','Neige']:code<=82?['🌦️','Averses']:code<=86?['🌨️','Neige']:code>=95?['⛈️','Orage']:['🌤️','Variable'];
+const conditions=code=>code===0?['☀️','Ciel dégagé']:code<=3?['⛅','Nuageux']:code<=48?['≋','Brouillard']:code<=67?['🌧️','Pluie']:code<=77?['❄️','Neige']:code<=82?['🌦️','Averses']:code<=86?['🌨️','Neige']:code>=95?['⛈️','Orage']:['🌤️','Variable'];
 const fmt=(n,d=0)=>n==null?'—':Number(n).toFixed(d);
-function showWeather(){if(!weather)return;if(currentWeatherPage==='heatmap'){showHeatSelection();return;}if(currentWeatherPage==='data'){showWeatherTable();return;}if(currentWeatherPage==='map'){showMapSelection();return;}const c=weather.current,w=conditions(c.weather_code),d=weather.daily;$('#result').innerHTML=`<div class="weather-grid"><section class="panel now"><div class="eyebrow">CONDITIONS ACTUELLES · MODÈLE MÉTÉO</div><div class="now-city">${safe(city.name)} <small style="font-size:13px;color:#abc2d3">${safe(city.country)}</small></div><div class="temp">${fmt(c.temperature_2m)}° <span style="font-size:42px">${w[0]}</span></div><div class="description">${w[1]} · Ressenti ${fmt(c.apparent_temperature)} °C</div><div class="metrics"><div class="metric"><small>Humidité</small><strong>${fmt(c.relative_humidity_2m)} %</strong></div><div class="metric"><small>Vent</small><strong>${fmt(c.wind_speed_10m)} km/h</strong></div><div class="metric"><small>Précipitations</small><strong>${fmt(c.precipitation,1)} mm</strong></div><div class="metric"><small>Heure du relevé</small><strong style="font-size:16px">${safe(c.time?.slice(11)||'—')}</strong></div></div></section><section class="panel"><div class="section-head" style="margin:0 0 16px"><div><h3>Évolution horaire</h3><p>Prochaines 24 heures disponibles à partir de l'heure actuelle</p></div><select id="metric" class="field" style="width:auto"><option value="temperature_2m">Température (°C)</option><option value="relative_humidity_2m">Humidité (%)</option><option value="precipitation_probability">Probabilité de pluie (%)</option><option value="wind_speed_10m">Vent (km/h)</option></select></div><div class="chart-summary" id="chart-summary"></div><div id="chart" class="chart-wrap"></div><div id="chart-tooltip" class="chart-tooltip" role="status">Survolez un point de la courbe pour consulter ses valeurs.</div></section></div><section class="panel"><h3>Prévisions quotidiennes</h3><div class="days">${d.time.map((day,i)=>`<div class="day"><b>${new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'})}</b><span class="emoji">${conditions(d.weather_code[i])[0]}</span><strong>${fmt(d.temperature_2m_max[i])}° / ${fmt(d.temperature_2m_min[i])}°</strong><small>☔ ${fmt(d.precipitation_sum[i],1)} mm</small></div>`).join('')}</div></section>`;$('#metric').onchange=drawChart;drawChart();}
+function showWeather(){if(!weather)return;if(currentWeatherPage==='heatmap'){showHeatSelection();return;}if(currentWeatherPage==='data'){showWeatherTable();return;}if(currentWeatherPage==='map'){showMapSelection();return;}const d=weather.daily,dayIndex=selectedForecastDay?d.time.indexOf(selectedForecastDay):-1;const c=weather.current,w=conditions(dayIndex>=0?d.weather_code[dayIndex]:c.weather_code);$('#result').innerHTML=`<div class="weather-grid"><section class="panel now"><div class="eyebrow">${dayIndex>=0?'JOUR SÉLECTIONNÉ · '+safe(selectedForecastDay):'CONDITIONS ACTUELLES · MODÈLE MÉTÉO'}</div><div class="now-city">${safe(city.name)} <small style="font-size:13px;color:#abc2d3">${safe(city.country)}</small></div><div class="temp">${fmt(dayIndex>=0?d.temperature_2m_max[dayIndex]:c.temperature_2m)}° <span style="font-size:42px">${w[0]}</span></div><div class="description">${w[1]} · ${dayIndex>=0?'Min '+fmt(d.temperature_2m_min[dayIndex])+' °C':'Ressenti '+fmt(c.apparent_temperature)+' °C'}</div><div class="metrics"><div class="metric"><small>Humidité</small><strong>${fmt(c.relative_humidity_2m)} %</strong></div><div class="metric"><small>Vent</small><strong>${fmt(c.wind_speed_10m)} km/h</strong></div><div class="metric"><small>Précipitations</small><strong>${fmt(c.precipitation,1)} mm</strong></div><div class="metric"><small>Heure du relevé</small><strong style="font-size:16px">${safe(c.time?.slice(11)||'—')}</strong></div></div></section><section class="panel"><div class="section-head" style="margin:0 0 16px"><div><h3>Évolution horaire</h3><p>Prochaines 24 heures disponibles à partir de l'heure actuelle</p></div><select id="metric" class="field" style="width:auto"><option value="temperature_2m">Température (°C)</option><option value="relative_humidity_2m">Humidité (%)</option><option value="precipitation_probability">Probabilité de pluie (%)</option><option value="wind_speed_10m">Vent (km/h)</option></select></div><div class="chart-summary" id="chart-summary"></div><div id="chart" class="chart-wrap"></div><div id="chart-tooltip" class="chart-tooltip" role="status">Survolez un point de la courbe pour consulter ses valeurs.</div></section></div><section class="panel"><h3>Prévisions quotidiennes</h3><p class="daily-hint">Cliquez sur un jour pour afficher son évolution horaire et ses conditions.</p><div class="days">${d.time.map((day,i)=>`<button type="button" class="day ${selectedForecastDay===day?'chosen':''}" data-day="${day}" aria-pressed="${selectedForecastDay===day}"><b>${new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'})}</b><span class="emoji ${d.weather_code[i]>=45&&d.weather_code[i]<=48?'fog-icon':''}" title="${conditions(d.weather_code[i])[1]}" aria-label="${conditions(d.weather_code[i])[1]}">${conditions(d.weather_code[i])[0]}</span><strong>${fmt(d.temperature_2m_max[i])}° / ${fmt(d.temperature_2m_min[i])}°</strong><small>☔ ${fmt(d.precipitation_sum[i],1)} mm</small></button>`).join('')}</div></section>`;$('#metric').onchange=drawChart;$('#result').querySelectorAll('[data-day]').forEach(button=>button.addEventListener('click',()=>{selectedForecastDay=button.dataset.day;showWeather();}));drawChart();}
 const chartMetrics={
  temperature_2m:{label:'Température',unit:'°C'},
  relative_humidity_2m:{label:'Humidité relative',unit:'%'},
@@ -94,7 +157,7 @@ function drawChart(){
  const selector=$('#metric');if(!selector||!weather)return;
  const key=selector.value,metric=chartMetrics[key],hr=weather.hourly;
  const current=weather.current.time.slice(0,13);
- const index=hr.time.findIndex(t=>t.slice(0,13)>=current);
+ const index=hr.time.findIndex(t=>selectedForecastDay?t.startsWith(selectedForecastDay):t.slice(0,13)>=current);
  const start=index<0?0:index;
  const values=hr[key].slice(start,start+24),times=hr.time.slice(start,start+24);
  if(!values.length){$('#chart').textContent='Aucune mesure disponible.';return;}
@@ -104,7 +167,7 @@ function drawChart(){
  const grid=Array.from({length:5},(_,i)=>{const y=44+i*45,v=max-(max-min)*i/4;return `<line x1="62" y1="${y}" x2="692" y2="${y}" class="chart-grid"/><text x="52" y="${y+4}" text-anchor="end" class="chart-label">${fmt(v,1)}</text>`;}).join('');
  const ticks=times.map((t,i)=>i%4===0?`<text x="${points[i].x}" y="245" text-anchor="middle" class="chart-label">${t.slice(11,16)}</text>`:'').join('');
  const circles=points.map((p,i)=>`<circle data-index="${i}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="5" class="chart-point" tabindex="0" role="button" aria-label="${safe(times[i])}: ${p.value} ${metric.unit}"><title>${safe(times[i])}: ${p.value} ${metric.unit}</title></circle>`).join('');
- $('#chart-summary').innerHTML=`<span class="legend-key"><span class="legend-dot"></span>${metric.label} (${metric.unit})</span><span>Minimum <strong>${fmt(lo,1)} ${metric.unit}</strong></span><span>Maximum <strong>${fmt(hi,1)} ${metric.unit}</strong></span><span>24 prochaines heures</span>`;
+ $('#chart-summary').innerHTML=`<span class="legend-key"><span class="legend-dot"></span>${metric.label} (${metric.unit})</span><span>Minimum <strong>${fmt(lo,1)} ${metric.unit}</strong></span><span>Maximum <strong>${fmt(hi,1)} ${metric.unit}</strong></span><span>${selectedForecastDay?'Journée du '+selectedForecastDay:'24 prochaines heures'}</span>`;
  $('#chart').innerHTML=`<svg class="weather-chart" viewBox="0 0 740 270" role="img" aria-label="Évolution horaire de ${metric.label} en ${metric.unit}">${grid}${ticks}<path class="chart-area" d="${path} L${points.at(-1).x} 224 L62 224 Z"/><path class="chart-line" d="${path}"/>${circles}<text x="62" y="18" class="chart-axis-label">${metric.unit}</text><text x="692" y="264" text-anchor="end" class="chart-axis-label">Heure locale</text></svg>`;
  const tooltip=$('#chart-tooltip');
  $('#chart').querySelectorAll('.chart-point').forEach(node=>{
@@ -173,6 +236,7 @@ async function loadHeatmap(){
   if(heatOverlay)weatherMap.removeLayer(heatOverlay);
   heatOverlay=L.imageOverlay(img.url,grid.bounds,{opacity:0.8,interactive:false,alt:'Températures interpolées'}).addTo(weatherMap);
   if(label)label.textContent=`${fmt(img.min,1)} °C — ${fmt(img.max,1)} °C · ${temps.length} points`;
+  const scale=$('#heat-scale');if(scale){scale.replaceChildren();for(let i=0;i<=5;i++){const tick=document.createElement('span');tick.textContent=fmt(img.min+(img.max-img.min)*i/5,1)+' °C';scale.appendChild(tick);}}
   status('✓ Carte de chaleur chargée. Cliquez sur la carte pour sélectionner un point.');
  }catch(e){if(request===heatRequest){if(label)label.textContent='Indisponible';status('Carte de chaleur : '+e.message,true);}}
  finally{if(button&&request===heatRequest){button.disabled=false;button.textContent='↻ Actualiser la zone';}}

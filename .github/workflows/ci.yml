@@ -40,3 +40,29 @@ jobs:
           grep -q 'app.js' /tmp/atlas-index.html
           curl --fail --silent http://127.0.0.1:8765/app.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/styles.css -o /dev/null
+
+  browser:
+    name: Playwright visual & interaction tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
