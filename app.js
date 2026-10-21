@@ -29,11 +29,11 @@ function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||
 function render(){
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
  heatRequest++;
- let id=decodeURIComponent(location.hash.replace(/^#\\/?/,''));
+ let id=decodeURIComponent(location.hash.startsWith('#/')?location.hash.slice(2):'');
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.replace(/^#\\//,''));weatherView();}else placeholder(modules.find(m=>m[0]===root));
+ if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else placeholder(modules.find(m=>m[0]===root));
  window.scrollTo({top:0,behavior:'instant'});
 }
 function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>01</b><small>Module opérationnel</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
