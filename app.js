@@ -20,7 +20,7 @@ const safe = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 let weatherMap=null, weatherMarker=null, weatherRequest=0, heatRequest=0, heatOverlay=null;
 const WEATHER_PAGES=['overview','map','heatmap','data'];
 let currentWeatherPage='overview';
-function weatherPageFromHash(hash){const page=hash.split('/')[2]||'overview';return WEATHER_PAGES.includes(page)?page:'overview';}
+function weatherPageFromHash(hash){const page=hash.split('/')[1]||'overview';return WEATHER_PAGES.includes(page)?page:'overview';}
 function savedWeatherLocation(){try{const m=document.cookie.match(/(?:^|; )atlas_weather_location=([^;]*)/);if(!m)return null;const p=JSON.parse(decodeURIComponent(m[1]));if(!Number.isFinite(p.latitude)||!Number.isFinite(p.longitude)||Math.abs(p.latitude)>90||Math.abs(p.longitude)>180)return null;return {name:String(p.name||'Position enregistrée').slice(0,100),country:String(p.country||'').slice(0,100),latitude:p.latitude,longitude:p.longitude};}catch{return null;}}
 function rememberWeatherLocation(){document.cookie='atlas_weather_location='+encodeURIComponent(JSON.stringify(city))+'; Max-Age=15552000; Path=/; SameSite=Lax';}
 
@@ -111,6 +111,71 @@ function drawChart(){
   const update=()=>{const i=Number(node.dataset.index);tooltip.textContent=`${new Date(times[i]).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} à ${times[i].slice(11,16)} — ${metric.label} : ${fmt(values[i],1)} ${metric.unit}`;};
   node.addEventListener('mouseenter',update);node.addEventListener('focus',update);node.addEventListener('click',update);
  });
+}
+
+function weatherSmallCard(){
+ const c=weather?.current;if(!c)return '';
+ return `<section class="panel"><div class="map-selection"><div><small>EMPLACEMENT SÉLECTIONNÉ</small><h3>${safe(city.name)}</h3><p>${safe(city.country)} · ${city.latitude.toFixed(4)}°, ${city.longitude.toFixed(4)}°</p></div><div class="selection-temp">${fmt(c.temperature_2m,1)} °C</div><div><small>Ressenti</small><strong>${fmt(c.apparent_temperature,1)} °C</strong></div><div><small>Vent</small><strong>${fmt(c.wind_speed_10m)} km/h</strong></div></div></section>`;
+}
+function showMapSelection(){$('#result').innerHTML=weatherSmallCard();}
+function showHeatSelection(){$('#result').innerHTML=weatherSmallCard();}
+function showWeatherTable(){
+ const h=weather.hourly,now=weather.current.time.slice(0,13),i=Math.max(0,h.time.findIndex(t=>t.slice(0,13)>=now));
+ const rows=h.time.slice(i,i+48).map((t,j)=>{const n=i+j;return `<tr><td>${safe(t.replace('T',' '))}</td><td>${fmt(h.temperature_2m[n],1)} °C</td><td>${fmt(h.relative_humidity_2m[n])} %</td><td>${fmt(h.precipitation_probability[n])} %</td><td>${fmt(h.wind_speed_10m[n],1)} km/h</td></tr>`;}).join('');
+ $('#result').innerHTML=`<section class="panel data-panel"><h3>Prévisions horaires — ${safe(city.name)}</h3><p>48 heures, horaires locaux · valeurs modélisées</p><div class="table-scroll"><table class="data-table"><thead><tr><th>Heure</th><th>Température</th><th>Humidité</th><th>Risque pluie</th><th>Vent</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+function heatGrid(bounds,rows=6,columns=8){
+ const south=Math.max(-85,bounds.getSouth()),north=Math.min(85,bounds.getNorth());
+ const west=Math.max(-180,bounds.getWest()),east=Math.min(180,bounds.getEast());
+ if(north<=south||east<=west)throw Error('Zone trop large : zoomez sur une région');
+ const points=[];
+ for(let r=0;r<rows;r++)for(let c=0;c<columns;c++)points.push({latitude:north-(north-south)*r/(rows-1),longitude:west+(east-west)*c/(columns-1)});
+ return {points,bounds:[[south,west],[north,east]],rows,columns};
+}
+function temperatureColor(value,min,max){
+ const p=Math.max(0,Math.min(1,(value-min)/Math.max(1,max-min)));
+ const stops=[[31,88,190],[35,171,218],[57,191,123],[244,199,64],[230,96,53],[167,39,70]];
+ const x=p*(stops.length-1),i=Math.min(stops.length-2,Math.floor(x)),t=x-i;
+ return stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*t));
+}
+function drawHeatImage(samples,rows,columns){
+ const canvas=document.createElement('canvas');canvas.width=400;canvas.height=300;
+ const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas indisponible');
+ const pixels=ctx.createImageData(canvas.width,canvas.height);
+ const min=Math.min(...samples),max=Math.max(...samples);
+ for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
+   const col=x/(canvas.width-1)*(columns-1),row=y/(canvas.height-1)*(rows-1);
+   const c=Math.min(columns-2,Math.floor(col)),r=Math.min(rows-2,Math.floor(row)),fx=col-c,fy=row-r;
+   const a=samples[r*columns+c],b=samples[r*columns+c+1],d=samples[(r+1)*columns+c],e=samples[(r+1)*columns+c+1];
+   if(![a,b,d,e].every(Number.isFinite))continue;
+   const value=a*(1-fx)*(1-fy)+b*fx*(1-fy)+d*(1-fx)*fy+e*fx*fy;
+   const rgb=temperatureColor(value,min,max),p=(y*canvas.width+x)*4;
+   pixels.data[p]=rgb[0];pixels.data[p+1]=rgb[1];pixels.data[p+2]=rgb[2];pixels.data[p+3]=174;
+ }
+ ctx.putImageData(pixels,0,0);return {url:canvas.toDataURL('image/png'),min,max};
+}
+async function loadHeatmap(){
+ if(!weatherMap||currentWeatherPage!=='heatmap')return;
+ const request=++heatRequest,button=$('#reload-heat'),label=$('#heat-range');
+ if(button){button.disabled=true;button.textContent='Chargement…';}
+ if(label)label.textContent='Récupération des températures…';
+ try{
+  const grid=heatGrid(weatherMap.getBounds());
+  const params=new URLSearchParams({latitude:grid.points.map(p=>p.latitude.toFixed(4)).join(','),longitude:grid.points.map(p=>p.longitude.toFixed(4)).join(','),current:'temperature_2m',timezone:'GMT'});
+  const response=await fetch('https://api.open-meteo.com/v1/forecast?'+params);
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const data=await response.json();
+  if(request!==heatRequest||!weatherMap)return;
+  if(!Array.isArray(data)||data.length!==grid.points.length)throw Error('Grille incomplète');
+  const temps=data.map(v=>v.current?.temperature_2m);
+  if(!temps.every(Number.isFinite))throw Error('Points sans température');
+  const img=drawHeatImage(temps,grid.rows,grid.columns);
+  if(heatOverlay)weatherMap.removeLayer(heatOverlay);
+  heatOverlay=L.imageOverlay(img.url,grid.bounds,{opacity:0.8,interactive:false,alt:'Températures interpolées'}).addTo(weatherMap);
+  if(label)label.textContent=`${fmt(img.min,1)} °C — ${fmt(img.max,1)} °C · ${temps.length} points`;
+  status('✓ Carte de chaleur chargée. Cliquez sur la carte pour sélectionner un point.');
+ }catch(e){if(request===heatRequest){if(label)label.textContent='Indisponible';status('Carte de chaleur : '+e.message,true);}}
+ finally{if(button&&request===heatRequest){button.disabled=false;button.textContent='↻ Actualiser la zone';}}
 }
 function exportData(format){if(!weather){status('Chargez des données avant de les exporter.',true);return;}let str,type,ext;if(format==='json'){str=JSON.stringify({city,downloaded_at:lastUpdate?.toISOString(),data:weather},null,2);type='application/json';ext='json';}else{const h=weather.hourly,keys=Object.keys(h).filter(k=>Array.isArray(h[k]));str=[keys.join(','),...h.time.map((_,i)=>keys.map(k=>h[k][i]??'').join(','))].join('\n');type='text/csv';ext='csv';}const blob=new Blob([str],{type:`${type};charset=utf-8`}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`atlas-meteo-${city.name.toLowerCase().replace(/[^a-z0-9]/g,'-')}.${ext}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
 if(typeof document!=='undefined'){const saved=savedWeatherLocation();if(saved)city=saved;const search=$('#global-search');if(search){search.addEventListener('input',e=>{if(location.hash!=='#/'&&location.hash!==''){location.hash='#/';setTimeout(()=>{$('#filter').value=e.target.value;catalog(e.target.value);},0);}else{const filter=$('#filter');if(filter){filter.value=e.target.value;catalog(e.target.value);}}});}}
