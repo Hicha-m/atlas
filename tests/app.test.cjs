@@ -53,3 +53,27 @@ test('weather API, geocoding and exports are implemented', () => {
 test('responsive styles exist', () => {
   assert.match(css, /@media/);
 });
+
+
+test('selectable map UI has a supported map library and visible coordinates', () => {
+  assert.match(html, /leaflet@1\.9\.4/);
+  assert.match(js, /weatherMap\.on\('click'/);
+  assert.match(js, /id="weather-map"/);
+  assert.match(js, /updateCoordinates\(/);
+});
+test('chart exposes time labels, units, legends and point values', () => {
+  assert.match(js, /chartMetrics=/);
+  assert.match(js, /id="chart-summary"/);
+  assert.match(js, /chart-tooltip/);
+  assert.match(js, /chart-axis-label/);
+  assert.match(js, /chart-point/);
+});
+test('constant series produces finite chart points', () => {
+  const data = Array.from(expression('graphPoints([4,4,4])'));
+  assert.equal(data.length,3);
+  assert.ok(data.every(({x,y})=>Number.isFinite(x)&&Number.isFinite(y)));
+});
+test('chart metric declarations include units', () => {
+  const units = Array.from(expression('Object.values(chartMetrics).map(metric=>metric.unit)'));
+  assert.deepEqual(units,['°C','%','%','km/h']);
+});
