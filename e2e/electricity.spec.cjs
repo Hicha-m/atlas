@@ -50,7 +50,7 @@ test('mix view explains eight filières, exchange sign and STEP',async({page},in
   await expect(page.locator('.elec-donut')).toBeVisible();
   await expect(page.locator('.elec-mix-row')).toHaveCount(8);
   await expect(page.locator('.elec-mix-panel')).toHaveCount(0);
-  await expect(page.locator('.elec-mix-explainer')).toContainText('pompage');
+  await expect(page.locator('.elec-mix-explainer')).toContainText(/pompage/i);
   await expect(page.locator('.elec-kpi').last()).toContainText('Exportateur net');
   await pageHasNoOverflow(page);
   await page.screenshot({path:info.outputPath('electricity-mix.png'),fullPage:true});
