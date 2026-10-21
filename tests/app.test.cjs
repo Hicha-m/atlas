@@ -77,3 +77,40 @@ test('chart metric declarations include units', () => {
   const units = Array.from(expression('Object.values(chartMetrics).map(metric=>metric.unit)'));
   assert.deepEqual(units,['°C','%','%','km/h']);
 });
+
+
+test('weather module exposes four navigable subpages', () => {
+  for (const route of ['overview','map','heatmap','data']) assert.match(js,new RegExp("['\"]"+route+"['\"]"));
+  assert.match(js, /function weatherPageFromHash/);
+  assert.match(js, /weather-tabs/);
+  assert.equal(expression("weatherPageFromHash('weather/heatmap')"),'heatmap');
+  assert.equal(expression("weatherPageFromHash('weather/unknown')"),'overview');
+});
+test('zoom accepts Ctrl + wheel and does not capture ordinary scrolling', () => {
+  assert.match(js,/e\.ctrlKey/);
+  assert.match(js,/e\.preventDefault\(\)/);
+  assert.match(js,/weatherMap\.setZoom/);
+  assert.match(js,/passive:false/);
+});
+test('location cookies are constrained and may be deleted', () => {
+  assert.match(js,/atlas_weather_location/);
+  assert.match(js,/SameSite=Lax/);
+  assert.match(js,/Max-Age=0/);
+  assert.match(js,/Math\.abs\(p\.latitude\)>90/);
+});
+test('heatmap uses actual forecast grid samples with interpolation', () => {
+  assert.match(js,/function heatGrid/);
+  assert.match(js,/function drawHeatImage/);
+  assert.match(js,/imageOverlay/);
+  assert.match(js,/current:'temperature_2m'/);
+  assert.match(js,/Actualiser la zone/);
+});
+test('temperature legend colors remain RGB values', () => {
+  const c=Array.from(expression('temperatureColor(10,-5,30)'));
+  assert.equal(c.length,3);
+  assert.ok(c.every(v=>Number.isInteger(v)&&v>=0&&v<=255));
+});
+test('repository shell includes global header and search', () => {
+  assert.match(html,/class="global-header"/);
+  assert.match(html,/id="global-search"/);
+});
