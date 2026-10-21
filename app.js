@@ -75,9 +75,9 @@ function initWeatherMap(){
    city={name:'Point sélectionné',country:'Coordonnées GPS',latitude:+latlng.lat.toFixed(5),longitude:+latlng.lng.toFixed(5)};
    $('#city').value=''; updateCoordinates();
    weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
-   await loadWeather();if(currentWeatherPage==='heatmap')scheduleHeatmap();
+   await loadWeather();
  });
- if(currentWeatherPage==='heatmap'){weatherMap.on('moveend',scheduleHeatmap);el.addEventListener('click',scheduleHeatmap,true);}
+ if(currentWeatherPage==='heatmap'){weatherMap.on('moveend',scheduleHeatmap);el.addEventListener('click',()=>{clearTimeout(heatRefreshTimer);loadHeatmap();},true);}
  setTimeout(()=>weatherMap?.invalidateSize(),0);
 }
 function updateCoordinates(){const el=$('#coordinates');if(el)el.textContent=city.latitude.toFixed(4)+'°, '+city.longitude.toFixed(4)+'°';}
