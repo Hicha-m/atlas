@@ -65,7 +65,7 @@ test('heatmap updates after map clicks and zoom supports Ctrl+wheel',async({page
  const initial=gridCalls;
  const el=page.locator('#weather-map');
  const box=await el.boundingBox();
- await page.mouse.click(box.x+box.width*.58,box.y+box.height*.55);
+ await el.click({position:{x:box.width*.58,y:box.height*.55}});
  await expect.poll(()=>gridCalls,{timeout:18000}).toBeGreaterThan(initial);
  const before=await page.evaluate(()=>window.weatherMap?.getZoom?.()||document.querySelector('.leaflet-zoom-in')?.getAttribute('aria-label'));
  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);
