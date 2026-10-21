@@ -27,19 +27,29 @@ function savedWeatherLocation(){try{const m=document.cookie.match(/(?:^|; )atlas
 function rememberWeatherLocation(){document.cookie='atlas_weather_location='+encodeURIComponent(JSON.stringify(city))+'; Max-Age=15552000; Path=/; SameSite=Lax';}
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
-function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${m[0]==='weather'?'<small>●</small>':''}</a>`).join(''); }
+let electricityDispose=null;
+function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`).join(''); }
 function render(){
+ if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
  clearTimeout(heatRefreshTimer);clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
  let id=decodeURIComponent(location.hash.startsWith('#/')?location.hash.slice(2):'');
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else placeholder(modules.find(m=>m[0]===root));
+ if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else if(root==='electricity'){
+   $('#app').innerHTML='<div class="panel" role="status">Chargement du tableau de bord électricité…</div>';
+   const route=id.split('/')[1]||'overview';
+   import('./electricity.js').then(module=>{
+     if(location.hash.startsWith('#/electricity') && $('#app')) electricityDispose=module.mountElectricity($('#app'),route);
+   }).catch(error=>{
+     if(location.hash.startsWith('#/electricity'))$('#app').innerHTML='<div class="panel" role="alert">Impossible de charger le module Électricité : '+safe(error.message)+'</div>';
+   });
+ }else placeholder(modules.find(m=>m[0]===root));
  window.scrollTo({top:0,behavior:'instant'});
 }
-function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>01</b><small>Module opérationnel</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
-function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.toLowerCase().includes(query.toLowerCase()));$('#catalog').innerHTML=list.map(m=>`<a href="#/${m[0]}" class="card"><span class="pill ${m[0]==='weather'?'ready':''}">${m[0]==='weather'?'ACTIF':'À VENIR'}</span><span class="card-icon">${m[3]}</span><h3>${m[1]}</h3><p>${m[2]}</p><span class="arrow">↗</span></a>`).join('')||'<p>Aucun résultat.</p>';}
+function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>02</b><small>Modules opérationnels</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
+function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.toLowerCase().includes(query.toLowerCase()));$('#catalog').innerHTML=list.map(m=>`<a href="#/${m[0]}" class="card"><span class="pill ${['weather','electricity'].includes(m[0])?'ready':''}">${['weather','electricity'].includes(m[0])?'ACTIF':'À VENIR'}</span><span class="card-icon">${m[3]}</span><h3>${m[1]}</h3><p>${m[2]}</p><span class="arrow">↗</span></a>`).join('')||'<p>Aucun résultat.</p>';}
 function placeholder(m){if(!m){home();return;}$('#app').innerHTML=`<a class="back" href="#/">← Tous les modules</a><div class="eyebrow">MODULE EN PRÉPARATION</div><h1>${m[3]} ${m[1]}</h1><p class="lead">${m[2]}</p><div class="empty"><h2>Ce module sera développé prochainement.</h2><p>Fournisseur prévu : ${safe(m[4])}. Il sera intégré à la même architecture que le module Météo, avec des outils adaptés à ces données.</p><a class="btn" href="#/">Revenir au catalogue →</a></div>`;}
 function weatherView(){
  const p=currentWeatherPage;

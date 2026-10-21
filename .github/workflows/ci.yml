@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '22'
       - name: JavaScript syntax
-        run: node --check app.js
+        run: npm run check
       - name: Automated tests
         run: node --test tests/*.test.cjs
       - name: HTTP smoke test
@@ -40,6 +40,9 @@ jobs:
           grep -q 'app.js' /tmp/atlas-index.html
           curl --fail --silent http://127.0.0.1:8765/app.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/styles.css -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity-data.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity.css -o /dev/null
 
   browser:
     name: Playwright visual & interaction tests
