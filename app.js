@@ -77,7 +77,7 @@ function initWeatherMap(){
    weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
    await loadWeather();if(currentWeatherPage==='heatmap')scheduleHeatmap();
  });
- if(currentWeatherPage==='heatmap')weatherMap.on('moveend',scheduleHeatmap);
+ if(currentWeatherPage==='heatmap'){weatherMap.on('moveend',scheduleHeatmap);el.addEventListener('click',scheduleHeatmap,true);}
  setTimeout(()=>weatherMap?.invalidateSize(),0);
 }
 function updateCoordinates(){const el=$('#coordinates');if(el)el.textContent=city.latitude.toFixed(4)+'°, '+city.longitude.toFixed(4)+'°';}
