@@ -60,3 +60,61 @@ h1{letter-spacing:-1.4px}h2{letter-spacing:-.4px}
 .chart-point:hover,.chart-point:focus{fill:#f0f6fc;stroke:#58a6ff;stroke-width:3;outline:none}
 .chart-tooltip{min-height:34px;color:#c9d1d9;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:9px 12px;font-size:12px;font-variant-numeric:tabular-nums}
 @media(max-width:680px){#weather-map{height:295px}.map-panel{padding:15px}.chart-summary{gap:7px 12px}}
+
+
+/* Visual foundation: GitHub Primer-inspired density, spacing and components */
+:root{--canvas:#0d1117;--panel:#151b23;--panelSubtle:#0d1117;--border:#3d444d;--muted:#9198a1;--fg:#f0f6fc;--link:#4493f8;--hover:#21262d}
+.shell{display:block;min-height:100vh}
+.global-header{min-height:65px;display:flex;gap:14px;align-items:center;padding:10px 24px;border-bottom:1px solid #30363d;background:#010409}
+.gh-menu{display:grid;place-items:center;width:34px;height:34px;border:1px solid #3d444d;border-radius:6px;font-size:17px;color:#9198a1}
+.global-logo{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:700;color:#f0f6fc;white-space:nowrap}
+.logo-orbit{display:grid;place-items:center;background:#f0f6fc;color:#0d1117;border-radius:50%;font-size:21px;width:31px;height:31px}
+.header-slash{color:#6e7681;font-size:20px}.header-project{color:#f0f6fc;font-weight:600;font-size:14px}
+.repo-public{font-size:11px;color:#9198a1;border:1px solid #3d444d;border-radius:18px;padding:2px 7px}
+.global-search{display:flex;align-items:center;gap:10px;margin-left:auto;width:min(330px,28vw);border:1px solid #3d444d;background:#0d1117;border-radius:6px;padding:6px 10px;color:#9198a1}
+.global-search input{background:transparent;border:0;outline:0;color:#f0f6fc;min-width:0;width:100%;font-size:12px}
+.global-search kbd{border:1px solid #3d444d;border-radius:4px;font-size:10px;padding:1px 5px}
+.header-link{font-size:12px;border:1px solid #3d444d;padding:8px;border-radius:6px;white-space:nowrap;color:#9198a1}
+.header-avatar{border:1px solid #566073;background:#1f6feb;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-weight:700;font-size:12px}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:calc(100vh - 65px)}
+.sidebar{height:calc(100vh - 65px);position:sticky;top:0;padding:25px 14px;background:#0d1117;border-right:1px solid #30363d}
+.sidebar-label{font-size:11px;font-weight:600;color:#9198a1;padding:0 12px 12px}
+nav#nav{gap:2px}
+.nav-link{padding:9px 12px;font-size:13px}.nav-link.active{border-left:0;background:#1c2d42}
+.topbar{height:47px;padding:0 clamp(24px,3vw,54px);background:#0d1117;border-bottom:1px solid #30363d}
+#app{max-width:1400px;padding:35px clamp(24px,3vw,54px) 80px}
+.repo-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:5px 0 22px;flex-wrap:wrap}
+.repo-title{display:flex;gap:14px;align-items:center}
+.repo-icon{height:51px;width:51px;border:1px solid #3d444d;background:#151b23;border-radius:50%;display:grid;place-items:center;font-size:25px}
+.repo-eyebrow{color:#9198a1;font-size:12px;font-weight:500}
+.repo-title h1{font-size:28px;line-height:1.2;letter-spacing:-.6px;margin:4px 0 7px}
+.repo-title p{margin:0;color:#9198a1;font-size:13px}
+.state-pill{display:inline-block;font-size:11px;letter-spacing:0;vertical-align:middle;color:#3fb950;border:1px solid #347d39;padding:3px 8px;border-radius:20px;font-weight:500}
+.actions{padding-top:4px}
+.weather-tabs{display:flex;gap:24px;overflow-x:auto;border-bottom:1px solid #30363d;margin:0 0 21px;scrollbar-width:thin}
+.weather-tab{display:flex;align-items:center;gap:8px;padding:13px 5px 12px;color:#9198a1;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent}
+.weather-tab:hover{color:#f0f6fc}
+.weather-tab.selected{color:#f0f6fc;border-bottom-color:#f78166;font-weight:600}
+.tab-icon{font-size:17px}
+.controls-panel{margin-top:0}
+.map-panel{margin-top:18px}
+.map-full{height:570px!important}
+.heat-legend{display:flex;align-items:center;gap:13px;margin-top:17px;color:#9198a1;font-size:12px;flex-wrap:wrap}
+.heat-gradient{width:210px;height:12px;border-radius:4px;background:linear-gradient(90deg,#1f58be,#23abda,#39bf7b,#f4c740,#e66035,#a72746);border:1px solid #3d444d}
+.heat-legend strong{margin-left:auto;color:#f0f6fc;font-variant-numeric:tabular-nums}
+.heat-coordinates{display:inline-block;margin-top:12px}
+.map-selection{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.map-selection>div:first-child{flex:1;min-width:195px}
+.map-selection h3{font-size:17px;margin:7px 0}.map-selection p{margin:0;color:#9198a1;font-size:12px}
+.map-selection small{display:block;color:#9198a1;font-size:11px}
+.map-selection strong{display:block;font-size:15px;margin-top:5px}
+.selection-temp{font-weight:650;font-size:35px;letter-spacing:-1px}
+.table-scroll{overflow-x:auto;margin-top:20px}
+.data-table{border-collapse:collapse;min-width:600px;width:100%;font-size:12px}
+.data-table th,.data-table td{text-align:left;padding:11px 14px;border-bottom:1px solid #30363d}
+.data-table th{background:#0d1117;color:#c9d1d9;font-weight:600}
+.data-table tr:hover td{background:#1c2128}
+.data-panel>p{font-size:12px;color:#9198a1}
+.reset-location{align-self:end}
+@media(max-width:900px){.layout{grid-template-columns:205px 1fr}.global-search{width:180px}.header-project{display:none}.map-full{height:460px!important}}
+@media(max-width:680px){.layout{display:block}.global-header{padding:9px 12px;gap:9px}.header-slash,.repo-public,.header-link span,.global-search kbd{display:none}.global-search{flex:1;width:auto}.sidebar{height:auto;position:static;padding:10px 12px;border-right:0;border-bottom:1px solid #30363d}.sidebar-label,.aside-foot{display:none}.sidebar nav#nav{display:flex;flex-direction:row;overflow-x:auto;white-space:nowrap}.sidebar .nav-link{flex-shrink:0;padding:7px 10px}.topbar{height:40px}#app{padding:24px 16px 45px}.repo-title h1{font-size:24px}.repo-icon{height:42px;width:42px}.weather-tabs{gap:16px}.map-full{height:400px!important}.map-selection{gap:15px}.heat-legend strong{width:100%;margin-left:0}}
