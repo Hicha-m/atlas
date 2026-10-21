@@ -22,7 +22,9 @@ Atlas Live est une application web **responsive**, destinée à explorer, filtre
 
 - Recherche de ville par nom ou code postal (API Geocoding Open-Meteo).
 - Conditions météo modélisées et prévisions à 3, 7 ou 14 jours.
-- Courbes horaires : température, humidité, probabilité de pluie et vent.
+- Courbes horaires : température, humidité, probabilité de pluie et vent ; sélection d’une journée pour afficher son évolution.
+- Carte interactive et carte thermique interpolée (Open-Meteo, échelle de températures).
+- Recherche de villes avec suggestions et mémorisation locale de la dernière position sélectionnée.
 - Export des résultats en **JSON** ou **CSV**, actualisation à la demande.
 - Source et limites d'actualité des données signalées dans l'interface.
 
@@ -49,9 +51,12 @@ Prérequis tests : Node.js 22 (aucune installation npm).
 ```bash
 node --check app.js
 node --test tests/*.test.cjs
+npm install
+npx playwright install chromium
+npm run test:e2e
 ```
 
-GitHub Actions lance ces contrôles et un smoke test HTTP local pour les pushes sur `main` et les pull requests vers `main`. Ces vérifications ne remplacent pas les tests de navigateur ou un test réel des API distantes.
+GitHub Actions lance ces contrôles, des tests Playwright Chromium desktop/tablette/mobile (navigation, carte, cookies, sélection des jours, resize, scroll) avec captures et traces téléchargeables depuis les artefacts, et un smoke test HTTP local pour les pushes sur `main` et les pull requests vers `main`. Les tests Playwright simulent l’API météo pour rester reproductibles ; ils ne remplacent pas une vérification réseau des API distantes.
 
 ## Architecture
 
