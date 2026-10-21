@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality & tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: node --check app.js
+      - name: Automated tests
+        run: node --test tests/*.test.cjs
+      - name: HTTP smoke test
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/atlas-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://127.0.0.1:8765/ -o /tmp/atlas-index.html; then break; fi
+            sleep 1
+          done
+          grep -q 'app.js' /tmp/atlas-index.html
+          curl --fail --silent http://127.0.0.1:8765/app.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/styles.css -o /dev/null
