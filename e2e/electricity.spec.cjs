@@ -20,6 +20,8 @@ async function mockRte(page, status = 200) {
   let calls = 0;
   await page.route('https://odre.opendatasoft.com/api/explore/v2.1/**', async route => {
     calls++;
+    const requestUrl = new URL(route.request().url());
+    if(requestUrl.searchParams.get('where') !== 'consommation IS NOT NULL') return route.fulfill({json:{total_count:100,results:Array.from({length:100},(_,i)=>({...fixture[i],consommation:null}))}});
     if(status !== 200) return route.fulfill({status,contentType:'application/json',body:'{"message":"Rate limited"}'});
     return route.fulfill({json:{total_count:12000,results:fixture}});
   });
