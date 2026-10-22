@@ -25,6 +25,7 @@ test('four weather views have a stable responsive layout and screenshots',async(
  for(const view of ['overview','map','heatmap','data']){
   await page.goto('/#/weather/'+view);
   await expect(page.getByRole('heading',{name:/Météo mondiale/})).toBeVisible();
+  expect(await page.locator('nav.weather-tabs').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
   await assertNoOverflow(page);
   if(view==='heatmap')await expect(page.locator('#heat-scale')).toContainText('°C',{timeout:18000});
   if(view==='data')await expect(page.locator('.data-table tbody tr')).toHaveCount(48);
