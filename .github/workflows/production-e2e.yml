@@ -1,0 +1,71 @@
+name: Production E2E (real APIs)
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+    inputs:
+      heatmap:
+        description: 'Also query live Open-Meteo 30-point heatmap (uses API quota)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-live-production
+  cancel-in-progress: true
+
+jobs:
+  live-production:
+    name: Production browser and upstream health
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      ATLAS_PRODUCTION_URL: https://atlas-live-data-studio.vercel.app
+      ATLAS_CHECK_LIVE_HEATMAP: ${{ inputs.heatmap && '1' || '0' }}
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test runner
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Allow production rollout to finish on push
+        if: github.event_name == 'push'
+        run: sleep 85
+      - name: Check deployed website and real RTE / Open-Meteo services
+        run: npm run test:live
+      - name: Summarize execution
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Atlas Live: production end-to-end';
+            echo '';
+            echo '- Site: https://atlas-live-data-studio.vercel.app';
+            echo '- Real RTE and Open-Meteo APIs (no mocked responses)';
+            echo '- Browsers: desktop Chromium + mobile Chromium';
+            echo '- Heatmap live: opt-in only; test skipped otherwise';
+            echo '- Status of last step: ${{ job.status }}';
+            echo '';
+            echo 'If RTE or Open-Meteo is down, this is an upstream availability failure, not proof of a code regression.';
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Save screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-production-live-evidence
+          path: |
+            test-results/
+            playwright-production-report/
+          retention-days: 14
+          if-no-files-found: ignore

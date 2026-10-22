@@ -25,7 +25,10 @@ jobs:
         with:
           node-version: '22'
       - name: JavaScript syntax
-        run: npm run check
+        run: |
+          npm run check
+          node --check e2e/production.spec.cjs
+          node --check e2e/visual.spec.cjs
       - name: Automated tests
         run: node --test tests/*.test.cjs
       - name: HTTP smoke test
@@ -59,6 +62,13 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests
         run: npm run test:e2e
+      - name: Compare Primer UI to approved pixel baselines
+        run: |
+          if find e2e/visual.spec.cjs-snapshots -name '*.png' -print -quit 2>/dev/null | grep -q .; then
+            npm run test:visual
+          else
+            echo 'Reference screenshots not approved yet. Baseline review branch will be created after merge.'
+          fi
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -66,6 +76,7 @@ jobs:
           name: atlas-playwright-report
           path: |
             playwright-report/
+            playwright-visual-report/
             test-results/
           if-no-files-found: ignore
           retention-days: 14

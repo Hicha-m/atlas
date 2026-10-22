@@ -1,6 +1,7 @@
 const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
  testDir:'./e2e',
+ testIgnore:['**/production.spec.cjs','**/visual.spec.cjs'],
  timeout:30000,
  expect:{timeout:10000},
  fullyParallel:true,
