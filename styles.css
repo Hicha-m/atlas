@@ -160,3 +160,7 @@ body{overflow-x:clip}
  .header-avatar{display:none}
  .heat-scale{gap:4px}.heat-scale span{font-size:10px}
 }
+
+/* Navigation Primer : les onglets sont une rangée horizontale, jamais la colonne du menu latéral. */
+nav.weather-tabs,nav.elec-tabs{flex-direction:row;align-items:center;flex-wrap:nowrap;gap:18px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;overscroll-behavior-x:contain}
+nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-space:nowrap}
