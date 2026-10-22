@@ -13,7 +13,9 @@ test('real OWID snapshot has at least 200 countries and 20 years of France',asyn
  assert.equal(api.historicValue(data,'ZZZ',2025,'generationTWh'),null);
  assert.equal(api.historicValue(data,'FRA',2100,'generationTWh'),null);
  const rankings=api.availableCountries(data,2025,'generationTWh');
- assert.ok(rankings.length>150);
+ assert.ok(rankings.length>=80); // 2025 remains incomplete: only 90 countries in source
+ const prior=api.availableCountries(data,2024,'generationTWh');
+ assert.ok(prior.length>=180); // 2024 has ~195 countries with published totals
  assert.ok(rankings.every(x=>x.value!==null));
  assert.ok(rankings[0].value>=rankings[1].value);
 });
