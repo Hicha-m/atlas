@@ -62,3 +62,28 @@ test('production: optional live temperature heatmap overlay',async({page},info)=
   await expect(page.locator('.leaflet-image-layer')).toBeVisible();
   await page.screenshot({path:info.outputPath('production-heatmap-live.png'),fullPage:true});
 });
+
+test('production: world data and real geographic map load without external API mocks',async({page},info)=>{
+ await page.goto(PROD+'/#/electricity/world',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#geo-map')).toBeVisible({timeout:20000});
+ await expect(page.locator('#geo-status')).toContainText('213 pays');
+ await expect(page.locator('#geo-rank button')).not.toHaveCount(0);
+ await expect(page.locator('#geo-details')).toContainText('États-Unis');
+ await page.screenshot({path:info.outputPath('production-world-choropleth.png'),fullPage:true});
+});
+test('production: Energy-Charts Europe responds from the real browser with a measured interval',async({page},info)=>{
+ test.skip(info.project.name==='live-mobile','Only one shared-IP live Energy-Charts request per run to honor strict quotas.');
+ const upstream=[];
+ page.on('response',r=>{if(r.url().startsWith('https://api.energy-charts.info/v2/public_power'))upstream.push({status:r.status(),url:r.url()});});
+ await page.goto(PROD+'/#/electricity/europe',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#geo-map')).toBeVisible({timeout:20000});
+ await expect(page.locator('#geo-details')).toContainText('Mesures récentes');
+ await expect.poll(async()=>{
+  const msg=await page.locator('#geo-status').innerText();
+  if(msg.includes('Impossible')||msg.includes('HTTP 429'))throw Error('Fraunhofer Energy-Charts upstream unavailable: '+msg);
+  return msg.includes('Relevés européens chargés');
+ },{timeout:35000,intervals:[1000,2000,3000]}).toBeTruthy();
+ expect(upstream.some(r=>r.status===200&&new URL(r.url).searchParams.get('country')==='de')).toBeTruthy();
+ await expect(page.locator('#geo-details')).toContainText('GW');
+ await page.screenshot({path:info.outputPath('production-europe-live.png'),fullPage:true});
+});
