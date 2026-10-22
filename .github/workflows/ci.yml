@@ -46,6 +46,11 @@ jobs:
           curl --fail --silent http://127.0.0.1:8765/electricity.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/electricity-data.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/electricity.css -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity-explore.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity-global-data.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/electricity-explore.css -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/data/electricity-world-annual.json -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/data/electricity-world-geometry.geojson -o /dev/null
 
   browser:
     name: Playwright visual & interaction tests
