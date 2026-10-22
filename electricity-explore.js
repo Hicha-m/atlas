@@ -85,7 +85,7 @@ function shell(mode){
  '<div id="geo-content"><section class="panel" role="status">Chargement des données historiques…</section></div></div>';
 }
 export function mountElectricityExplore(container,mode='world'){
- const state={root:container,mode,data:null,geometry:null,map:null,layer:null,year:2025,metric:'renewablesPercent',
+ const state={root:container,mode,data:null,geometry:null,map:null,layer:null,year:2024,metric:'renewablesPercent',
   country:mode==='europe'?'DEU':'USA',compare:'CHN',live:null,liveError:null,liveBusy:false,abort:null,timer:null,active:true};
  container.innerHTML=shell(mode);
  const $=selector=>container.querySelector(selector);
@@ -99,7 +99,7 @@ export function mountElectricityExplore(container,mode='world'){
   $('#geo-content').innerHTML=
   '<section class="panel geo-toolbar"><label>Pays <select class="field" id="geo-country">'+options(items,state.country)+'</select></label>'+
   '<label>Indicateur annuel <select class="field" id="geo-metric">'+HISTORIC_METRICS.map(m=>'<option value="'+m.id+'" '+(m.id===state.metric?'selected':'')+'>'+escapeHTML(m.label)+'</option>').join('')+'</select></label>'+
-  '<label>Année <output id="geo-year-label">2025</output> <input id="geo-year" type="range" min="2000" max="2025" step="1" value="2025" aria-label="Année historique"/></label>'+
+  '<label>Année <output id="geo-year-label">2024</output> <input id="geo-year" type="range" min="2000" max="2025" step="1" value="2024" aria-label="Année historique"/></label>'+
   (mode==='world'?'<label>Comparer à <select class="field" id="geo-compare"><option value="">Aucun pays</option>'+options(items,state.compare)+'</select></label>':
    '<button type="button" id="geo-refresh" class="btn">↻ Mesures récentes</button>')+'</section>'+
   '<div id="geo-status" class="elec-message" role="status" aria-live="polite"></div>'+
@@ -110,7 +110,7 @@ export function mountElectricityExplore(container,mode='world'){
   '<section class="panel geo-trend"><div class="geo-section-heading"><h2>Historique 2000–2025</h2><small id="geo-trend-label"></small></div><div id="geo-trend-content"></div></section>'+
   '<section class="panel geo-ranking"><div class="geo-section-heading"><h2>Classement annuel</h2><small id="geo-rank-label"></small></div><div id="geo-rank"></div></section>'+
   '<section class="panel elec-attribution geo-source"><div><strong>Sources et limites</strong>'+
-  '<p>Carte, classements et comparaisons : Our World in Data, notamment données Ember. Période historique 2000–2025, compilation publiée le '+escapeHTML(state.data.sourceLastUpdated)+'. TWh et % sont annuels, pas des mesures instantanées.</p>'+
+  '<p>Carte, classements et comparaisons : Our World in Data, notamment données Ember. Période historique 2000–2025 (2025 incomplet : 90 pays contre 195 en 2024), compilation publiée le '+escapeHTML(state.data.sourceLastUpdated)+'. TWh et % sont annuels, pas des mesures instantanées.</p>'+
   (mode==='europe'?'<p>Séries récentes : Fraunhofer ISE / Energy-Charts, en MW. Fréquence et disponibilité selon le pays. Les échanges commerciaux ne sont pas des flux physiques. API limitée (environ 2 appels/min/IP), actualisation à la demande et cache local 10 min.</p>':'<p>Les pays ne publient pas tous les mêmes indicateurs ni les mêmes années. Les cases grises représentent des valeurs manquantes.</p>')+
   '</div><div class="geo-source-links"><a href="'+WORLD_SOURCE+'" target="_blank" rel="noopener noreferrer">Our World in Data ↗</a>'+
   (mode==='europe'?'<a href="'+EUROPE_SOURCE+'" target="_blank" rel="noopener noreferrer">Energy-Charts ↗</a>':
