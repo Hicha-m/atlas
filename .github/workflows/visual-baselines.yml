@@ -1,0 +1,67 @@
+name: Prepare visual reference screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/visual.spec.cjs'
+      - 'playwright.visual.config.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot-baselines:
+    name: Generate reference screenshots in a separate review branch
+    if: github.repository == 'Hicha-m/atlas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Skip if approved references already exist
+        id: references
+        shell: bash
+        run: |
+          if find e2e/visual.spec.cjs-snapshots -name '*.png' -print -quit 2>/dev/null | grep -q .; then
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --heads origin test/visual-reference-baselines >/dev/null 2>&1; then
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install dependencies
+        if: steps.references.outputs.needed == 'true'
+        run: npm install --no-audit --no-fund
+      - name: Install browser
+        if: steps.references.outputs.needed == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Generate deterministic pixel references
+        if: steps.references.outputs.needed == 'true'
+        run: npm run test:visual:update
+      - name: Push reference images for review (not directly to main)
+        if: steps.references.outputs.needed == 'true'
+        shell: bash
+        run: |
+          git switch -c test/visual-reference-baselines
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/visual.spec.cjs-snapshots/
+          git commit -m "test(visual): record approved candidate baselines for Primer UI"
+          git push origin HEAD:refs/heads/test/visual-reference-baselines
+      - name: Save pixel references and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-visual-reference-candidates
+          path: |
+            e2e/visual.spec.cjs-snapshots/
+            test-results/
+            playwright-visual-report/
+          if-no-files-found: ignore
+          retention-days: 14
