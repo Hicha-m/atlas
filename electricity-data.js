@@ -98,6 +98,9 @@ export function freshness(timestamp, now = Date.now()) {
 export function electricityApiUrl() {
   const url = new URL(ELECTRICITY_ENDPOINT);
   url.searchParams.set('limit', '100');
+  // Exclude future J+1 forecast slots: their consommation and production are null.
+  // Confirmed against live ODRE API on 2026-10-22.
+  url.searchParams.set('where', 'consommation IS NOT NULL');
   url.searchParams.set('order_by', 'date_heure desc');
   url.searchParams.set('timezone', 'Europe/Paris');
   return url.toString();
