@@ -89,11 +89,12 @@ function initWeatherMap(){
    city={name:'Point sélectionné',country:'Coordonnées GPS',latitude:+latlng.lat.toFixed(5),longitude:+latlng.lng.toFixed(5)};
    $('#city').value=''; updateCoordinates();
    weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
+   if(currentWeatherPage==='heatmap')scheduleHeatmap();
    await loadWeather();
  });
  if(currentWeatherPage==='heatmap'){
+ // Leaflet suppresses 'click' after a pan, unlike a generic DOM click listener.
  weatherMap.on('zoomend',scheduleHeatmap);
- el.addEventListener('click',event=>{if(event.target.closest('.leaflet-control'))return;scheduleHeatmap();},true);
 }
  setTimeout(()=>weatherMap?.invalidateSize(),0);
 }
