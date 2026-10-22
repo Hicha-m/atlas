@@ -64,3 +64,9 @@ Voir [docs/ELECTRICITY.md](ELECTRICITY.md) pour les schémas, règles métier, r
 L'architecture ajoute un module ES chargé dynamiquement par le routeur Atlas : quatre pages, état et cache client, séparation entre données normalisées (electricity-data.js) et présentation (electricity.js). Les filières de génération sont agrégées séparément des consommations de pompage et échanges physiques. L'accès public ne nécessite pas de secret en JavaScript. Les flux ont une date et un statut de fraîcheur visibles.
 
 La DA reste inspirée de [Primer de GitHub](https://primer.style/) : même vocabulaire de panneaux, densité et éléments de navigation, implémentation et identité propres à Atlas.
+
+## Carte thermique — limitation des quotas (22 octobre 2026)
+
+Correction à la suite d'un usage réel : un simple drag (pan) ne déclenche **aucun appel** météo. Seuls clic sur carte et zoom déclenchent une tentative de mise à jour. Le fond thermique dépend de l'emprise de la zone, et non du point cliqué : les clics dans une même zone réutilisent l'image mise en cache. Grille réduite à **5×6 = 30 points** par zone. Mémoire LRU de **12 zones**, durée de vie **10 minutes**, espacement réseau minimal de **20 secondes** et regroupement des zooms rapides (500 ms). En cas de réponse HTTP **429**, pause de **2 minutes** ; en cas de réponse 5xx, pause de **1 minute**. Le clic sur un point recharge ses prévisions détaillées séparément de la couche thermique ; les données ne doivent pas être demandées au rythme des déplacements de souris.
+
+Les tests Playwright vérifient explicitement l'absence de nouvelle requête sur drag et la réutilisation du cache sur clic de la même zone.

@@ -68,3 +68,9 @@ Référence : **[GitHub Primer](https://primer.style/)**. Nous reprenons les pri
 ## Extensions prévues
 
 Données régionales et cartes de flux, séries longues paginées, comparaison de périodes, vues de production empilée et cache côté serveur si l’audience l’exige.
+
+## Correctif du 22 octobre 2026 — Prévisions futures versus valeurs réalisées
+
+Une interrogation réelle du portail ODRE a établi que les dernières lignes par date peuvent correspondre à des **créneaux futurs**, avec `prevision_j1` renseignée mais `consommation`, production et CO₂ à `null`. L'ancienne requête demandait les cent dates les plus récentes sans exclure ces lignes ; l'interface affichait donc « aucun relevé valide ». La requête actuelle contient `where=consommation IS NOT NULL`, puis `order_by=date_heure desc` et `limit=100`. Cette correction a été vérifiée sur l'API réelle : le dernier relevé obtenu lors du contrôle était daté du 22 octobre 2026 à 13:00 (Europe/Paris), consommation 56 163 MW, prévision J 55 900 MW, nucléaire 37 419 MW, éolien 12 285 MW et solaire 10 529 MW. Les créneaux futurs restent volontairement exclus du tableau des **mesures**. Ne pas fabriquer des mesures en utilisant les prévisions futures.
+
+Requête reproductible (URL encodée automatiquement) : `GET https://odre.opendatasoft.com/api/explore/v2.1/catalog/datasets/eco2mix-national-tr/records?limit=3&where=consommation%20IS%20NOT%20NULL&order_by=date_heure%20desc`.

@@ -17,6 +17,7 @@ test('ODRE endpoint targets the national time-series dataset, latest 100 records
   assert.match(url.pathname,/eco2mix-national-tr\/records/);
   assert.equal(url.searchParams.get('limit'),'100');
   assert.equal(url.searchParams.get('order_by'),'date_heure desc');
+  assert.equal(url.searchParams.get('where'),'consommation IS NOT NULL');
 });
 test('returns missing values as null instead of inventing zeros', async () => {
   const {finiteNumber,normaliseElectricityRecord} = await subject;
@@ -94,4 +95,13 @@ test('freshness does not present stale records as real-time', async () => {
   assert.equal(freshness(now-15*60000,now).status,'recent');
   assert.equal(freshness(now-120*60000,now).status,'delayed');
   assert.equal(freshness(now-600*60000,now).status,'stale');
+});
+
+test('forecast-only records cannot displace the latest measured consumption', async () => {
+  const { normaliseElectricityResponse } = await subject;
+  const actual = {...fixture(),date_heure:'2026-10-22T11:00:00+00:00'};
+  const prediction = {...fixture(),date_heure:'2026-10-23T22:45:00+00:00',consommation:null,nucleaire:null,prevision_j:null};
+  const rows = normaliseElectricityResponse({results:[prediction,actual]});
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].consommation,45000);
 });
