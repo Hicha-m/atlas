@@ -38,6 +38,7 @@ test('electricity overview renders RTE data, units and historical chart',async({
   await mockRte(page);
   await page.goto('/#/electricity');
   await expect(page.getByRole('heading',{name:/Électricité/})).toBeVisible();
+  expect(await page.locator('nav.elec-tabs').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
   await expect(page.locator('.elec-kpi')).toHaveCount(4);
   await expect(page.locator('.elec-kpi').first()).toContainText('GW');
   await expect(page.locator('.elec-kpi').nth(2)).toContainText('gCO₂e/kWh');

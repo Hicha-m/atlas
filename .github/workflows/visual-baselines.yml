@@ -6,6 +6,8 @@ on:
     paths:
       - 'e2e/visual.spec.cjs'
       - 'playwright.visual.config.cjs'
+      - 'styles.css'
+      - 'electricity.css'
   workflow_dispatch:
 
 permissions:
@@ -24,13 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Skip if approved references already exist
+      - name: Skip if approved references already exist on main
         id: references
         shell: bash
         run: |
           if find e2e/visual.spec.cjs-snapshots -name '*.png' -print -quit 2>/dev/null | grep -q .; then
-            echo 'needed=false' >> "$GITHUB_OUTPUT"
-          elif git ls-remote --exit-code --heads origin test/visual-reference-baselines >/dev/null 2>&1; then
             echo 'needed=false' >> "$GITHUB_OUTPUT"
           else
             echo 'needed=true' >> "$GITHUB_OUTPUT"
@@ -41,19 +41,23 @@ jobs:
       - name: Install browser
         if: steps.references.outputs.needed == 'true'
         run: npx playwright install --with-deps chromium
+      - name: Start clean candidate branch from current main
+        if: steps.references.outputs.needed == 'true'
+        run: |
+          git fetch origin '+refs/heads/test/visual-reference-baselines:refs/remotes/origin/test/visual-reference-baselines' || true
+          git switch -C test/visual-reference-baselines
       - name: Generate deterministic pixel references
         if: steps.references.outputs.needed == 'true'
         run: npm run test:visual:update
-      - name: Push reference images for review (not directly to main)
+      - name: Push updated reference images for review (not directly to main)
         if: steps.references.outputs.needed == 'true'
         shell: bash
         run: |
-          git switch -c test/visual-reference-baselines
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add e2e/visual.spec.cjs-snapshots/
-          git commit -m "test(visual): record approved candidate baselines for Primer UI"
-          git push origin HEAD:refs/heads/test/visual-reference-baselines
+          git commit -m "test(visual): regenerate reference captures for current Primer layout"
+          git push --force-with-lease origin HEAD:refs/heads/test/visual-reference-baselines
       - name: Save pixel references and reports
         if: always()
         uses: actions/upload-artifact@v4
