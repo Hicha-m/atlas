@@ -1,0 +1,46 @@
+name: Refresh world electricity data
+
+on:
+  schedule:
+    - cron: '31 5 6 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: electricity-world-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read latest OWID energy dataset and regenerate derived JSON
+        run: python3 scripts/update_electricity_world.py
+      - name: Validate data and adapters
+        run: |
+          npm run check
+          node --test tests/electricity-global.test.cjs
+      - name: Propose data changes for review (do not auto-deploy)
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data/refresh-world-electricity
+          delete-branch: true
+          title: "data: update annual world electricity source"
+          commit-message: "data: refresh verified annual world electricity snapshot"
+          body: |
+            ## Automated data-only update
+            Official CSV: https://catalog.ourworldindata.org/energy/owid_energy/owid_energy.csv
+
+            Source is a licensed compilation of Ember, Energy Institute and EIA indicators via OWID.
+            Review the changed years, missing values, per-indicator licenses, and tests before merging.
+            Historical values may be revised by the source.
+          add-paths: data/electricity-world-annual.json
