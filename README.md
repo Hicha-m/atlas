@@ -130,3 +130,11 @@ Code sous [licence MIT](LICENSE). Chaque fournisseur conserve ses propres droits
 ## Contribuer
 
 Lire [CONTRIBUTING.md](CONTRIBUTING.md) avant une pull request.
+## Vérification continue — production et design
+
+- **CI sur PR** : tests unitaires et Playwright Chromium avec APIs simulées.
+- **Surveillance réelle** : [Production E2E](.github/workflows/production-e2e.yml) vérifie chaque jour le site Vercel avec les vraies API RTE et Open-Meteo (sans mocking). Les erreurs fournisseur sont signalées à part des tests de code.
+- **Régression visuelle** : captures déterministes météo et électricité ; images de référence proposées dans une branche et approuvées par PR avant comparaison automatique pixel par pixel.
+- **Reproduire les tests** : `npm run test:e2e`, `npm run test:live`, `npm run test:visual` après installation de Chromium.
+
+Voir [la stratégie de test et ses limites](docs/TESTING.md).
