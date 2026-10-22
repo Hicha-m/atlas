@@ -110,7 +110,7 @@ export function mountElectricityExplore(container,mode='world'){
   '<section class="panel geo-trend"><div class="geo-section-heading"><h2>Historique 2000–2025</h2><small id="geo-trend-label"></small></div><div id="geo-trend-content"></div></section>'+
   '<section class="panel geo-ranking"><div class="geo-section-heading"><h2>Classement annuel</h2><small id="geo-rank-label"></small></div><div id="geo-rank"></div></section>'+
   '<section class="panel elec-attribution geo-source"><div><strong>Sources et limites</strong>'+
-  '<p>Carte, classements et comparaisons : Our World in Data, notamment données Ember. Période historique 2000–2025 (2025 incomplet : 90 pays contre 195 en 2024), compilation publiée le '+escapeHTML(state.data.sourceLastUpdated)+'. TWh et % sont annuels, pas des mesures instantanées.</p>'+
+  '<p>Carte, classements et comparaisons : Our World in Data, notamment données Ember. Période historique 2000–2025 (2025 encore incomplet : 90 pays, contre 195 en 2024), compilation publiée le '+escapeHTML(state.data.sourceLastUpdated)+'. TWh et % sont annuels, pas des mesures instantanées.</p>'+
   (mode==='europe'?'<p>Séries récentes : Fraunhofer ISE / Energy-Charts, en MW. Fréquence et disponibilité selon le pays. Les échanges commerciaux ne sont pas des flux physiques. API limitée (environ 2 appels/min/IP), actualisation à la demande et cache local 10 min.</p>':'<p>Les pays ne publient pas tous les mêmes indicateurs ni les mêmes années. Les cases grises représentent des valeurs manquantes.</p>')+
   '</div><div class="geo-source-links"><a href="'+WORLD_SOURCE+'" target="_blank" rel="noopener noreferrer">Our World in Data ↗</a>'+
   (mode==='europe'?'<a href="'+EUROPE_SOURCE+'" target="_blank" rel="noopener noreferrer">Energy-Charts ↗</a>':
@@ -236,7 +236,15 @@ export function mountElectricityExplore(container,mode='world'){
  }
  loadAssets().then(({data,geometry})=>{
   if(!active())return;
-  state.data=data;state.geometry=geometry;initializeUI();update();if(mode==='europe')loadLive();
+  state.data=data;state.geometry=geometry;
+  // Default to the latest year with at least 70% of countries covered.
+  // A newly released partial year should not paint most of the world gray.
+  const total=Object.keys(data.countries).length;
+  const chosen=Array.from({length:Math.max(0,data.maxYear-data.minYear+1)},(_,i)=>data.maxYear-i)
+   .find(year=>availableCountries(data,year,'generationTWh').length>=Math.ceil(total*0.7));
+  state.year=chosen||Math.min(data.maxYear,2024);
+  initializeUI();$('#geo-year').max=String(data.maxYear);$('#geo-year').value=String(state.year);
+  update();if(mode==='europe')loadLive();
  }).catch(err=>{
   if(!active())return;
   $('#geo-content').innerHTML='<section class="panel elec-error-panel" role="alert"><h2>Données mondiales indisponibles</h2><p>'+escapeHTML(err.message)+'</p><button type="button" id="geo-retry" class="btn primary">Réessayer</button></section>';
