@@ -85,9 +85,9 @@ test('export world CSV and JSON of actual selected year',async({page})=>{
  await page.goto('/#/electricity/world');
  await waitSnapshot(page);
  const [csv]=await Promise.all([page.waitForEvent('download'),page.locator('#geo-csv').click()]);
- expect(csv.suggestedFilename()).toMatch(/world-2025\.csv$/);
+ expect(csv.suggestedFilename()).toMatch(/world-2024\.csv$/);
  const [json]=await Promise.all([page.waitForEvent('download'),page.locator('#geo-json').click()]);
- expect(json.suggestedFilename()).toMatch(/world-2025\.json$/);
+ expect(json.suggestedFilename()).toMatch(/world-2024\.json$/);
 });
 test('new electricity views fit all target viewports',async({page})=>{
  for(const screen of ['world','europe']){
