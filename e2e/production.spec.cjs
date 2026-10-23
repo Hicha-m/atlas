@@ -76,7 +76,7 @@ test('production: world historical electricity loads actual OWID country data',a
 });
 test('production: Europe combines historical country data with actual Energy-Charts observations',async({page},info)=>{
  const upstream=[];
- page.on('response',r=>{if(r.url().includes('api.energy-charts.info/public_power'))upstream.push(r.status());});
+ page.on('response',r=>{if(r.url().includes('/api/europe-power?country='))upstream.push(r.status());});
  await page.goto(PROD+'/#/electricity/europe',{waitUntil:'domcontentloaded'});
  await expect(page.getByRole('heading',{name:'Électricité · Europe'})).toBeVisible();
  await expect(page.locator('.world-rank-row').first()).toBeVisible({timeout:40000});
