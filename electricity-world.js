@@ -68,26 +68,26 @@ function buildMap(topo,countries,year,metric,region,selected){
  const vals=rankCountries(countries,year,metric,region).map(x=>x.row[metric]);
  const sorted=vals.slice().sort((a,b)=>a-b);
  const min=sorted[Math.floor(sorted.length*.03)]??0,max=sorted[Math.floor(sorted.length*.97)]??1;
- const bounds=region==='world'?[-180,-60,180,86]:[-13,32,44,73];
  const W=980,H=region==='world'?460:530;
- const project=([lon,lat])=>{
-  const adjusted=Math.max(-84,Math.min(84,lat)),merc=Math.log(Math.tan(Math.PI/4+adjusted*Math.PI/360));
-  const topMerc=Math.log(Math.tan(Math.PI/4+bounds[3]*Math.PI/360)),bottomMerc=Math.log(Math.tan(Math.PI/4+bounds[1]*Math.PI/360));
-  return [(lon-bounds[0])/(bounds[2]-bounds[0])*W,(topMerc-merc)/(topMerc-bottomMerc)*H];
- };
- function geometryPath(shape){
-  const rings=shape.type==='Polygon'?shape.coordinates:shape.type==='MultiPolygon'?shape.coordinates.flat():[];
-  return rings.map(ring=>{
-   const valid=ring.filter(c=>c.length>=2);
-   return valid.map((p,i)=>{const pt=project(p);return (i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1);}).join(' ')+'Z';
-  }).join(' ');
- }
+ // GeoJSON polygons are geographic surfaces, not unwrapped SVG polylines.
+ // D3's spherical clipping correctly handles the antimeridian, polar bounds,
+ // holes and countries overlapping the Europe viewport.
+ if(!window.d3?.geoPath || !window.d3?.geoMercator || !window.d3?.geoNaturalEarth1)
+  return '<p class="world-muted">Projection cartographique indisponible. Le classement reste utilisable.</p>';
+ const europeViewport={type:'Polygon',coordinates:[[
+  [-13,33],[44,33],[44,73],[-13,73],[-13,33]
+ ]]};
+ const projection=region==='world'
+  ? window.d3.geoNaturalEarth1().fitExtent([[10,10],[W-10,H-10]],{type:'Sphere'})
+  : window.d3.geoMercator().fitExtent([[8,8],[W-8,H-8]],europeViewport);
+ projection.clipExtent([[0,0],[W,H]]);
+ const geometryPath=window.d3.geoPath(projection);
  return '<svg class="world-geo" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Carte électrique '+regionTitle(region)+', année '+year+'">'+
  allowed.map(f=>{
   const code=countryCodeByName(f.properties.name,countries);
   const row=observationAt(countries.find(c=>c.code===code),metric,year);
   const value=row?.[metric];
-  return '<path d="'+geometryPath(f.geometry)+'" fill="'+mapShade(value,min,max)+'" class="world-country'+(selected===code?' active':'')+'"'+
+  return '<path d="'+(geometryPath(f)||'')+'" fill="'+mapShade(value,min,max)+'" class="world-country'+(selected===code?' active':'')+'"'+
    (code?' data-code="'+safe(code)+'" tabindex="0" role="button" aria-label="'+safe(f.properties.name)+'"':'')+'><title>'+safe(f.properties.name)+' · '+(Number.isFinite(value)?fmt(value)+' '+metricInfo(metric).unit:'Données non disponibles')+'</title></path>';
  }).join('')+'</svg>'+
  '<div class="world-map-scale"><span>Faible</span><span class="world-gradient"></span><span>Élevé</span><small>Gris : données absentes · Pas une carte temps réel</small></div>';
