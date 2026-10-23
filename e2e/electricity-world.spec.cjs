@@ -20,7 +20,7 @@ async function mockWorld(page){
   type:'Topology',transform:{scale:[1,1],translate:[0,0]},objects:{countries:{type:'GeometryCollection',geometries:[
    {type:'Polygon',id:'250',properties:{name:'France'},arcs:[[0]]},
    {type:'Polygon',id:'276',properties:{name:'Germany'},arcs:[[1]]}
-  ]}},arcs:[[[1,1],[2,0],[0,2],[-2,0],[0,-2]],[[6,1],[2,0],[0,2],[-2,0],[0,-2]]]
+  ]}},arcs:[[[-5,42],[13,0],[0,9],[-13,0],[0,-9]],[[8,48],[8,0],[0,7],[-8,0],[0,-7]]]
  }}));
 }
 test.beforeEach(async({page})=>{await mockWorld(page);});
@@ -74,4 +74,16 @@ test('geographic shapes use spherical projection and remain inside viewport',asy
  expect(result.paths).toBeGreaterThan(0);
  expect(result.pathsOutside).toBe(0);
  expect(result.empty).toBe(0);
+});
+
+test('Europe map occupies available viewport instead of shrinking to a tiny cluster',async({page})=>{
+ await page.goto('/#/electricity/europe');
+ await expect(page.locator('.world-geo path[data-code="FRA"]')).toBeVisible({timeout:25000});
+ const area=await page.locator('.world-geo path[data-code="FRA"]').evaluate(el=>{
+  const box=el.getBBox();return {width:box.width,height:box.height};
+ });
+ // Bounding box computed from a realistic 13° × 9° French polygon fixture.
+ // Previously the spherical polygon complement compressed it to a few pixels.
+ expect(area.width).toBeGreaterThan(100);
+ expect(area.height).toBeGreaterThan(55);
 });
