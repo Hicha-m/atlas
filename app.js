@@ -43,7 +43,7 @@ function render(){
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
  if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else if(root==='electricity'){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du tableau de bord électricité…</div>';
-   const route=id.split('/')[1]||'overview';
+   const route=(id.split('/')[1]||'overview').split('?')[0];
    import(['world','europe','country'].includes(route)?'./electricity-global.js':'./electricity.js').then(module=>{
      if(location.hash.startsWith('#/electricity') && $('#app')) electricityDispose=['world','europe','country'].includes(route)?module.mountElectricityGlobal($('#app'),route):module.mountElectricity($('#app'),route);
    }).catch(error=>{
