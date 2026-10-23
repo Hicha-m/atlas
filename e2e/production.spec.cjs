@@ -71,6 +71,7 @@ test('production: world historical electricity loads actual OWID country data',a
  await expect(page.locator('.world-rank-row').first()).toBeVisible({timeout:40000});
  await expect(page.locator('.world-notice')).toContainText('Pas du temps réel');
  await expect(page.locator('.world-trend')).toBeVisible();
+ await expect(page.locator('.world-geo path[data-code]').first()).toBeVisible();
  expect(upstream).toContain(200);
  await page.screenshot({path:info.outputPath('production-electricity-world.png'),fullPage:true});
 });
@@ -81,6 +82,7 @@ test('production: Europe combines historical country data with actual Energy-Cha
  await expect(page.getByRole('heading',{name:'Électricité · Europe'})).toBeVisible();
  await expect(page.locator('.world-rank-row').first()).toBeVisible({timeout:40000});
  await expect(page.locator('#world-live')).toContainText('Production publique nette calculée',{timeout:40000});
+ await expect(page.locator('.world-geo path[data-code]').first()).toBeVisible();
  expect(upstream).toContain(200);
  await page.screenshot({path:info.outputPath('production-electricity-europe.png'),fullPage:true});
 });

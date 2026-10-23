@@ -1,7 +1,11 @@
+const fs=require('node:fs');
+const path=require('node:path');
 const {test,expect}=require('@playwright/test');
 const countries=[['France','FRA'],['Germany','DEU'],['Spain','ESP'],['United States','USA']];
 const records=countries.flatMap(([name,code],j)=>Array.from({length:31},(_,i)=>[name,code,1995+i,500+j*300+i*3]));
 async function mockWorld(page){
+ const d3=fs.readFileSync(path.resolve('node_modules/d3/dist/d3.min.js'));
+ await page.route('https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',r=>r.fulfill({status:200,contentType:'text/javascript',body:d3}));
  await page.route('https://ourworldindata.org/grapher/**',route=>{
   const url=route.request().url(),field=url.includes('low-carbon')?'low_carbon_share_of_electricity__pct':url.includes('renewables')?'renewable_share_of_electricity__pct':url.includes('carbon-intensity')?'co2_intensity__gco2_kwh':'total_generation__twh';
   const csv='entity,code,year,'+field+'\n'+records.map(([name,code,year,val])=>[name,code,year,field.includes('share')?40+(year-1995)/3:field.includes('intensity')?300-(year-1995):val].join(',')).join('\n');
@@ -53,4 +57,21 @@ test('world page handles broken data source without inventing a historical chart
  await page.goto('/#/electricity/world');
  await expect(page.locator('.world-error')).toBeVisible({timeout:25000});
  await expect(page.locator('.world-trend')).toHaveCount(0);
+});
+
+test('geographic shapes use spherical projection and remain inside viewport',async({page})=>{
+ await page.goto('/#/electricity/world');
+ await expect(page.locator('.world-geo')).toBeVisible({timeout:25000});
+ const result=await page.evaluate(()=>{
+  const svg=document.querySelector('.world-geo');
+  const paths=[...svg.querySelectorAll('path')];
+  return {d3:!!window.d3?.geoPath,paths:paths.length,pathsOutside:paths.filter(el=>{
+   const bounds=el.getBBox();
+   return bounds.x < -1 || bounds.y < -1 || bounds.x+bounds.width>981 || bounds.y+bounds.height>461;
+  }).length,empty:paths.filter(el=>!el.getAttribute('d')).length};
+ });
+ expect(result.d3).toBe(true);
+ expect(result.paths).toBeGreaterThan(0);
+ expect(result.pathsOutside).toBe(0);
+ expect(result.empty).toBe(0);
 });

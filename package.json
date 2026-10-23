@@ -12,7 +12,8 @@
     "test:visual:update": "playwright test -c playwright.visual.config.cjs --update-snapshots"
   },
   "devDependencies": {
-    "@playwright/test": "1.56.1"
+    "@playwright/test": "1.56.1",
+    "d3": "7.9.0"
   },
   "type": "module"
 }
