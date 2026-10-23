@@ -21,9 +21,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - name: JavaScript syntax
         run: |
           npm run check
@@ -54,16 +51,14 @@ jobs:
   browser:
     name: Playwright visual & interaction tests
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Install Chromium
-        run: npx playwright install chromium
       - name: Browser tests
         run: npm run test:e2e
       - name: Compare Primer UI to approved pixel baselines
