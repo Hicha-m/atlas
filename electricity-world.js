@@ -74,9 +74,9 @@ function buildMap(topo,countries,year,metric,region,selected){
  // holes and countries overlapping the Europe viewport.
  if(!window.d3?.geoPath || !window.d3?.geoMercator || !window.d3?.geoNaturalEarth1)
   return '<p class="world-muted">Projection cartographique indisponible. Le classement reste utilisable.</p>';
- const europeViewport={type:'Polygon',coordinates:[[
-  [-13,33],[44,33],[44,73],[-13,73],[-13,33]
- ]]};
+ // Two geographic control points avoid GeoJSON polygon winding
+ // (which D3 could interpret as the complement of the Europe rectangle).
+ const europeViewport={type:'MultiPoint',coordinates:[[-13,33],[44,73]]};
  const projection=region==='world'
   ? window.d3.geoNaturalEarth1().fitExtent([[10,10],[W-10,H-10]],{type:'Sphere'})
   : window.d3.geoMercator().fitExtent([[8,8],[W-8,H-8]],europeViewport);
