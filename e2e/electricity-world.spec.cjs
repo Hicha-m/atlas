@@ -54,3 +54,20 @@ test('world page handles broken data source without inventing a historical chart
  await expect(page.locator('.world-error')).toBeVisible({timeout:25000});
  await expect(page.locator('.world-trend')).toHaveCount(0);
 });
+
+test('geographic shapes use spherical projection and remain inside viewport',async({page})=>{
+ await page.goto('/#/electricity/world');
+ await expect(page.locator('.world-geo')).toBeVisible({timeout:25000});
+ const result=await page.evaluate(()=>{
+  const svg=document.querySelector('.world-geo');
+  const paths=[...svg.querySelectorAll('path')];
+  return {d3:!!window.d3?.geoPath,paths:paths.length,pathsOutside:paths.filter(el=>{
+   const bounds=el.getBBox();
+   return bounds.x < -1 || bounds.y < -1 || bounds.x+bounds.width>981 || bounds.y+bounds.height>461;
+  }).length,empty:paths.filter(el=>!el.getAttribute('d')).length};
+ });
+ expect(result.d3).toBe(true);
+ expect(result.paths).toBeGreaterThan(0);
+ expect(result.pathsOutside).toBe(0);
+ expect(result.empty).toBe(0);
+});
