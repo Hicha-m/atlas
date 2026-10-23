@@ -100,8 +100,11 @@ test('location cookies are constrained and may be deleted', () => {
 });
 test('heatmap uses actual forecast grid samples with interpolation', () => {
   assert.match(js,/function heatGrid/);
-  assert.match(js,/function drawHeatImage/);
-  assert.match(js,/imageOverlay/);
+  assert.match(js,/function ensureHeatCanvas/);
+  assert.match(js,/L.GridLayer.extend/);
+  assert.match(js,/heatOverlay.redraw/);
+  assert.doesNotMatch(js,/weatherMap.on\('zoomend',scheduleHeatmap\)/);
+  assert.doesNotMatch(js,/L.imageOverlay/);
   assert.match(js,/current:'temperature_2m'/);
   assert.match(js,/Actualiser la zone/);
 });

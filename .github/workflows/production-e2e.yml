@@ -24,6 +24,9 @@ jobs:
   live-production:
     name: Production browser and upstream health
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
     timeout-minutes: 18
     env:
       ATLAS_PRODUCTION_URL: https://atlas-live-data-studio.vercel.app
@@ -31,14 +34,8 @@ jobs:
     steps:
       - name: Checkout tests
         uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - name: Install test runner
         run: npm install --no-audit --no-fund
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
       - name: Allow production rollout to finish on push
         if: github.event_name == 'push'
         run: sleep 85

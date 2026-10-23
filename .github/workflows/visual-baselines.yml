@@ -26,6 +26,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Cache Chromium binaries
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.56.1-${{ runner.os }}-${{ runner.arch }}
       - name: Skip if approved references already exist on main
         id: references
         shell: bash
@@ -38,9 +44,9 @@ jobs:
       - name: Install dependencies
         if: steps.references.outputs.needed == 'true'
         run: npm install --no-audit --no-fund
-      - name: Install browser
-        if: steps.references.outputs.needed == 'true'
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium on cache miss
+        if: steps.references.outputs.needed == 'true' && steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
       - name: Start clean candidate branch from current main
         if: steps.references.outputs.needed == 'true'
         run: |
