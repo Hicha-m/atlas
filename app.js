@@ -228,6 +228,8 @@ function temperatureColor(value,min,max){
 // identified as illustrative). No user gesture triggers an external heat request.
 function ensureHeatCanvas(){
  if(!weatherMap||currentWeatherPage!=='heatmap'||heatOverlay)return;
+ const label=$('#heat-range');
+ if(label)label.textContent='Fond indicatif · relevés régionaux en attente';
  const HeatTiles=L.GridLayer.extend({
   createTile(coords){
    const canvas=document.createElement('canvas');
@@ -244,7 +246,8 @@ function ensureHeatCanvas(){
      const pixel=L.point((coords.x+(x+.5)/48)*256,(coords.y+(y+.5)/48)*256);
      const ll=L.CRS.EPSG3857.pointToLatLng(pixel,coords.z);
      const [[south,west],[north,east]]=entry.bounds;
-     const longitude=west+((((ll.lng-west)%360)+360)%360);
+     // Keep the closest wrapped longitude to the measured region.
+     const longitude=ll.lng+360*Math.round(((west+east)/2-ll.lng)/360);
      const latFraction=Math.max(0,Math.min(1,(north-ll.lat)/Math.max(.0001,north-south)));
      const lonFraction=Math.max(0,Math.min(1,(longitude-west)/Math.max(.0001,east-west)));
      const row=latFraction*(entry.rows-1),col=lonFraction*(entry.columns-1);
@@ -255,7 +258,7 @@ function ensureHeatCanvas(){
      // Outside the observed region: same color field, visually softened to avoid
      // a rectangular border. These are NOT additional measurements.
      const outside=ll.lat<south||ll.lat>north||longitude>east;
-     alpha=outside?110:180;
+     alpha=outside?126:180;
     }
     const p=(y*48+x)*4;
     pixels.data[p]=rgb[0];pixels.data[p+1]=rgb[1];pixels.data[p+2]=rgb[2];pixels.data[p+3]=alpha;
