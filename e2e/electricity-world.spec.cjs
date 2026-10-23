@@ -7,7 +7,7 @@ async function mockWorld(page){
   const csv='entity,code,year,'+field+'\n'+records.map(([name,code,year,val])=>[name,code,year,field.includes('share')?40+(year-1995)/3:field.includes('intensity')?300-(year-1995):val].join(',')).join('\n');
   return route.fulfill({status:200,contentType:'text/csv',body:csv});
  });
- await page.route('https://api.energy-charts.info/public_power**',route=>route.fulfill({json:{
+ await page.route('**/api/europe-power?**',route=>route.fulfill({json:{
   unix_seconds:[1792533600,1792534500],production_types:[{name:'Solar',data:[800,1000]},{name:'Wind offshore',data:[500,600]},{name:'Hydro pumped storage consumption',data:[-300,-400]}],
   license:'CC BY 4.0',source:'Energy-Charts'
  }}));
