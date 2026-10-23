@@ -41,7 +41,15 @@ function render(){
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else if(root==='electricity'){
+ if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
+   $('#app').innerHTML='<div class="panel" role="status">Chargement du comparateur électrique international…</div>';
+   const route=id.split('/')[1];
+   import('./electricity-world.js').then(module=>{
+     if(location.hash==='#/electricity/'+route && $('#app')) electricityDispose=module.mountElectricityWorld($('#app'),route);
+   }).catch(error=>{
+     if(location.hash==='#/electricity/'+route)$('#app').innerHTML='<div class="panel" role="alert">Impossible de charger la vue internationale : '+safe(error.message)+'</div>';
+   });
+ }else if(root==='electricity'){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du tableau de bord électricité…</div>';
    const route=id.split('/')[1]||'overview';
    import('./electricity.js').then(module=>{
