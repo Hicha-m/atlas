@@ -138,3 +138,11 @@ Lire [CONTRIBUTING.md](CONTRIBUTING.md) avant une pull request.
 - **Reproduire les tests** : `npm run test:e2e`, `npm run test:live`, `npm run test:visual` après installation de Chromium.
 
 Voir [la stratégie de test et ses limites](docs/TESTING.md).
+
+## Module 02 · Électricité France, Europe et Monde
+
+- **France** : relevés ODRE / RTE éCO₂mix de consommation, production, mix énergétique et CO₂, généralement 15 minutes : [ouvrir](https://atlas-live-data-studio.vercel.app/#/electricity/overview).
+- **Europe** : carte annuelle et consultation des mesures récentes Fraunhofer ISE Energy-Charts pour un pays sélectionné ; cache et limitation d'appels : [ouvrir](https://atlas-live-data-studio.vercel.app/#/electricity/europe).
+- **Monde** : carte thématique, 213 pays et historiques annuels 2000–2025, comparaisons, classement, fichiers CSV/JSON : [ouvrir](https://atlas-live-data-studio.vercel.app/#/electricity/world).
+
+La carte mondiale utilise un export OWID/Ember allégé (environ 305 Ko) et des frontières GeoJSON (environ 234 Ko), sans abonnement API ni envoi de requêtes à chaque clic. Les données annuelles ne sont pas étiquetées « temps réel ». Sources, droits, limites, actualisation mensuelle et architecture : [docs/ELECTRICITY_GLOBAL.md](docs/ELECTRICITY_GLOBAL.md).

@@ -10,7 +10,9 @@ const TABS = [
   { id: 'overview', title: 'Vue d’ensemble', icon: '◫' },
   { id: 'mix', title: 'Mix énergétique', icon: '◉' },
   { id: 'trends', title: 'Historique', icon: '⌁' },
-  { id: 'data', title: 'Données', icon: '▤' }
+  { id: 'data', title: 'Données', icon: '▤' },
+  { id: 'europe', title: 'Europe', icon: '◉' },
+  { id: 'world', title: 'Monde', icon: '🌐' }
 ];
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 const electricalCache = { rows: [], fetchedAt: 0 };
@@ -443,5 +445,6 @@ export function disposeElectricity() {
   state.active=false;
   state.request++;
   state.abort?.abort();state.abort=null;
+  state.busy=false;
   state.root=null;
 }

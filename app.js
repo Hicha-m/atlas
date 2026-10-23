@@ -1,6 +1,6 @@
 const modules = [
  ['weather','Météo mondiale','Conditions et prévisions, température, pluie et vent','☁️','Open-Meteo'],
- ['electricity','Électricité','Production, consommation et mix énergétique','⚡','RTE éCO2mix'],
+ ['electricity','Électricité','France, Europe et monde : production, consommation et mix','⚡','RTE, Energy-Charts, OWID / Ember'],
  ['transport','Transports','Horaires, retards et positions disponibles','🚆','transport.data.gouv.fr'],
  ['bikes','Vélos partagés','Disponibilité des vélos et bornes','🚲','GBFS'],
  ['planes','Avions en vol','Trajectoires, altitude et vitesse','✈️','OpenSky'],
@@ -44,8 +44,8 @@ function render(){
  if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else if(root==='electricity'){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du tableau de bord électricité…</div>';
    const route=id.split('/')[1]||'overview';
-   import('./electricity.js').then(module=>{
-     if(location.hash.startsWith('#/electricity') && $('#app')) electricityDispose=module.mountElectricity($('#app'),route);
+   (route==='europe'||route==='world'?import('./electricity-explore.js'):import('./electricity.js')).then(module=>{
+     if(location.hash.startsWith('#/electricity') && $('#app')) electricityDispose=route==='europe'||route==='world'?module.mountElectricityExplore($('#app'),route):module.mountElectricity($('#app'),route);
    }).catch(error=>{
      if(location.hash.startsWith('#/electricity'))$('#app').innerHTML='<div class="panel" role="alert">Impossible de charger le module Électricité : '+safe(error.message)+'</div>';
    });

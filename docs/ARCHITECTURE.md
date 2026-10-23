@@ -70,3 +70,11 @@ La DA reste inspirée de [Primer de GitHub](https://primer.style/) : même vocab
 Correction à la suite d'un usage réel : un simple drag (pan) ne déclenche **aucun appel** météo. Seuls clic sur carte et zoom déclenchent une tentative de mise à jour. Le fond thermique dépend de l'emprise de la zone, et non du point cliqué : les clics dans une même zone réutilisent l'image mise en cache. Grille réduite à **5×6 = 30 points** par zone. Mémoire LRU de **12 zones**, durée de vie **10 minutes**, espacement réseau minimal de **20 secondes** et regroupement des zooms rapides (500 ms). En cas de réponse HTTP **429**, pause de **2 minutes** ; en cas de réponse 5xx, pause de **1 minute**. Le clic sur un point recharge ses prévisions détaillées séparément de la couche thermique ; les données ne doivent pas être demandées au rythme des déplacements de souris.
 
 Les tests Playwright vérifient explicitement l'absence de nouvelle requête sur drag et la réutilisation du cache sur clic de la même zone.
+
+## Extension Électricité Europe / Monde (octobre 2026)
+
+- 3 sources strictement indépendantes : RTE-France (15 min), Energy-Charts-Europe (mesures récentes), OWID/Ember-Monde (annuel).
+- Nouveaux fichiers : `electricity-explore.js`, `electricity-global-data.js`, `electricity-explore.css`, `data/electricity-world-annual.json`, `data/electricity-world-geometry.geojson`.
+- États et cache Europe distincts ; une seule requête publique par pays, TTL 10 min, quota 35 s. Carte mondiale statique sans API à chaque interaction.
+- Les champs, unités, conventions de signe, source, cadence, licences et limites sont formalisés dans [ELECTRICITY_GLOBAL.md](ELECTRICITY_GLOBAL.md).
+- Le job mensuel de mise à jour ouvre une PR : aucun dataset externe n'écrase silencieusement les fichiers déployés.
