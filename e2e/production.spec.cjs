@@ -62,3 +62,25 @@ test('production: optional live temperature heatmap overlay',async({page},info)=
   await expect(page.locator('.leaflet-image-layer')).toBeVisible();
   await page.screenshot({path:info.outputPath('production-heatmap-live.png'),fullPage:true});
 });
+
+test('production: world historical electricity loads actual OWID country data',async({page},info)=>{
+ const upstream=[];
+ page.on('response',r=>{if(r.url().includes('ourworldindata.org/grapher/'))upstream.push(r.status());});
+ await page.goto(PROD+'/#/electricity/world',{waitUntil:'domcontentloaded'});
+ await expect(page.getByRole('heading',{name:'Électricité · Monde'})).toBeVisible();
+ await expect(page.locator('.world-rank-row').first()).toBeVisible({timeout:40000});
+ await expect(page.locator('.world-notice')).toContainText('Pas du temps réel');
+ await expect(page.locator('.world-trend')).toBeVisible();
+ expect(upstream).toContain(200);
+ await page.screenshot({path:info.outputPath('production-electricity-world.png'),fullPage:true});
+});
+test('production: Europe combines historical country data with actual Energy-Charts observations',async({page},info)=>{
+ const upstream=[];
+ page.on('response',r=>{if(r.url().includes('api.energy-charts.info/public_power'))upstream.push(r.status());});
+ await page.goto(PROD+'/#/electricity/europe',{waitUntil:'domcontentloaded'});
+ await expect(page.getByRole('heading',{name:'Électricité · Europe'})).toBeVisible();
+ await expect(page.locator('.world-rank-row').first()).toBeVisible({timeout:40000});
+ await expect(page.locator('#world-live')).toContainText('Production publique nette calculée',{timeout:40000});
+ expect(upstream).toContain(200);
+ await page.screenshot({path:info.outputPath('production-electricity-europe.png'),fullPage:true});
+});

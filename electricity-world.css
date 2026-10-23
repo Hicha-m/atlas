@@ -1,0 +1,43 @@
+
+/* International electricity — original Primer-inspired country explorer */
+.world-shell{min-width:0}
+.world-shell .world-controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:17px;margin-bottom:12px}
+.world-controls label{display:flex;flex-direction:column;gap:6px;color:#9198a1;font-size:12px;min-width:140px;flex:1 1 175px}
+.world-controls label:nth-child(3){flex:1 1 230px}
+.world-controls .field{min-width:0;width:100%;height:38px}
+.world-notice{font-size:12px;padding:12px 3px;color:#9198a1;line-height:1.8}
+.world-notice strong{color:#e3b341}
+.world-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(290px,1fr);gap:14px;margin:15px 0}
+.world-map-panel,.world-ranking,.world-history,.world-live-panel{min-width:0;padding:19px}
+.world-map-panel h3,.world-ranking h3,.world-history h3,.world-live-panel h3{font-size:16px;margin:0 0 6px}
+.world-map-panel p,.world-ranking p,.world-history p,.world-live-panel p{font-size:12px;color:#9198a1;line-height:1.6;margin:0}
+.world-map{padding-top:12px;min-height:260px;overflow:hidden}
+.world-geo{display:block;width:100%;height:auto;background:linear-gradient(150deg,#101c26,#0d1117);border:1px solid #30363d;border-radius:8px}
+.world-country{stroke:#56606d;stroke-width:.45;cursor:pointer;transition:stroke-width .12s,fill .12s}
+.world-country:hover,.world-country:focus,.world-country.active{stroke:#f0f6fc;stroke-width:2.2;outline:none;fill:#d29922}
+.world-map-scale{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:11px;color:#9198a1;font-size:11px}
+.world-gradient{flex:1;max-width:180px;height:10px;border-radius:10px;background:linear-gradient(90deg,hsl(210 61% 25%),hsl(130 61% 38%),hsl(55 61% 48%))}
+.world-map-scale small{width:100%;font-size:10px}
+.world-ranking .field{width:100%;margin:8px 0}
+.world-ranking-list{overflow-y:auto;max-height:410px;scrollbar-color:#3d444d transparent}
+.world-rank-row{display:flex;justify-content:space-between;gap:8px;align-items:center;width:100%;border:0;border-bottom:1px solid #30363d;text-align:left;background:transparent;color:#c9d1d9;padding:10px 6px;cursor:pointer;font-size:12px}
+.world-rank-row strong{color:#f0f6fc;font-variant-numeric:tabular-nums}
+.world-rank-row:hover,.world-rank-row.selected{background:#1c2734;color:#58a6ff}
+.world-history{margin-bottom:14px}
+.world-trend{width:100%;height:auto;margin:20px 0 6px;display:block}
+.world-live-panel{margin-top:14px}
+.world-live-badge{color:#3fb950;font-size:11px;border:1px solid #2d6a45;border-radius:20px;padding:5px 9px;white-space:nowrap}
+.world-live-head{display:flex;gap:16px;flex-wrap:wrap;margin:17px 0}
+.world-live-head>div{min-width:150px;flex:1;border:1px solid #30363d;border-radius:8px;padding:13px;background:#0d1117}
+.world-live-head small{display:block;color:#9198a1;font-size:11px;margin-bottom:9px}
+.world-live-head strong{font-size:18px;color:#f0f6fc}
+.world-live-sources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:15px}
+.world-live-source{background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:11px;display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:11px}
+.world-live-source b{white-space:nowrap}
+.world-live-error{color:#f08888!important;padding:14px}
+.world-live-panel>a{font-size:12px}
+.world-muted{color:#9198a1;font-size:12px;line-height:1.6;padding:10px 0}
+.world-loading,.world-error{padding:40px;text-align:center;min-height:160px}
+@media(max-width:1100px){.world-layout{grid-template-columns:1fr}.world-ranking-list{max-height:270px}}
+@media(max-width:680px){.world-shell .world-controls{align-items:stretch}.world-controls label{flex-basis:100%}.world-controls>.btn{flex:1}.world-live-sources{grid-template-columns:1fr 1fr}.world-live-head{display:grid;grid-template-columns:1fr 1fr}.world-live-head>div{min-width:0}.world-map-panel,.world-ranking,.world-history,.world-live-panel{padding:13px}}
+@media(max-width:400px){.world-live-sources{grid-template-columns:1fr}.world-live-head{grid-template-columns:1fr}}

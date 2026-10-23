@@ -425,8 +425,8 @@ function exportData(type) {
 }
 export function mountElectricity(container, page = 'overview') {
   state.root = container;
-  state.page = TABS.some(tab => tab.id === page) ? page : 'overview';
-  state.active = true; state.error=null;state.selectedTimestamp=null;state.request++;
+  state.page = TABS.some(tab => tab.id === page && !['europe','world'].includes(tab.id)) ? page : 'overview';
+  state.active = true; state.busy=false;state.error=null;state.selectedTimestamp=null;state.request++;
   container.innerHTML = '<div class="elec-shell">' + shell(state.page) + '</div>';
   E('#electricity-hours').value = String(state.hours);
   E('#electricity-hours').addEventListener('change',event => {
@@ -442,6 +442,6 @@ export function mountElectricity(container, page = 'overview') {
 export function disposeElectricity() {
   state.active=false;
   state.request++;
-  state.abort?.abort();state.abort=null;
+  state.abort?.abort();state.abort=null;state.busy=false;
   state.root=null;
 }

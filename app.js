@@ -31,7 +31,7 @@ function rememberWeatherLocation(){document.cookie='atlas_weather_location='+enc
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
 let electricityDispose=null;
-function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`).join(''); }
+function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`+(m[0]==='electricity'?'<div class="atlas-region-links"><a href="#/electricity/overview">🇫🇷 France · récent</a><a href="#/electricity/europe">🇪🇺 Europe · actuel + historique</a><a href="#/electricity/world">🌍 Monde · historique</a></div>':'')).join(''); }
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
@@ -41,7 +41,15 @@ function render(){
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView();}else if(root==='electricity'){
+ if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
+   $('#app').innerHTML='<div class="panel" role="status">Chargement du comparateur électrique international…</div>';
+   const route=id.split('/')[1];
+   import('./electricity-world.js').then(module=>{
+     if(location.hash==='#/electricity/'+route && $('#app')) electricityDispose=module.mountElectricityWorld($('#app'),route);
+   }).catch(error=>{
+     if(location.hash==='#/electricity/'+route)$('#app').innerHTML='<div class="panel" role="alert">Impossible de charger la vue internationale : '+safe(error.message)+'</div>';
+   });
+ }else if(root==='electricity'){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du tableau de bord électricité…</div>';
    const route=id.split('/')[1]||'overview';
    import('./electricity.js').then(module=>{
