@@ -164,3 +164,5 @@ body{overflow-x:clip}
 /* Navigation Primer : les onglets sont une rangée horizontale, jamais la colonne du menu latéral. */
 nav.weather-tabs,nav.elec-tabs{flex-direction:row;align-items:center;flex-wrap:nowrap;gap:18px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;overscroll-behavior-x:contain}
 nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-space:nowrap}
+
+.atlas-region-links{display:grid;gap:3px;padding:1px 7px 8px 31px}.atlas-region-links a{display:block;color:#9198a1;padding:7px 9px;font-size:11px;text-decoration:none;border-radius:6px}.atlas-region-links a:hover{color:#58a6ff;background:#21262d}
