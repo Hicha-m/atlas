@@ -212,7 +212,8 @@ export function mountElectricityWorld(root,mode='world'){
   const request=++liveRequest;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
   try{
-   const response=await fetch(url,{signal:controller.signal});
+   // Same-origin Vercel endpoint avoids provider CORS restrictions in browsers.
+   const response=await fetch('/api/europe-power?country='+encodeURIComponent(new URL(url).searchParams.get('country')),{signal:controller.signal});
    if(!response.ok)throw Error('Energy-Charts : HTTP '+response.status);
    const points=normalizeRecentPower(await response.json());
    if(!state.active||request!==liveRequest||state.liveCountry!==iso3)return;
