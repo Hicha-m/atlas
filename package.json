@@ -2,11 +2,11 @@
   "name": "atlas-live",
   "version": "0.4.0",
   "private": true,
-  "description": "Atlas Live: world open data dashboards with interactive weather and national electricity",
+  "description": "Atlas Live: weather and France live electricity plus world and European historical electricity",
   "scripts": {
     "test:e2e": "playwright test",
     "test:unit": "node --test tests/*.test.cjs",
-    "check": "node --check app.js && node --check electricity.js && node --check electricity-data.js",
+    "check": "node --check app.js && node --check electricity.js && node --check electricity-data.js && node --check electricity-global.js && node --check electricity-global-data.js",
     "test:live": "playwright test -c playwright.production.config.cjs",
     "test:visual": "playwright test -c playwright.visual.config.cjs",
     "test:visual:update": "playwright test -c playwright.visual.config.cjs --update-snapshots"
