@@ -7,7 +7,10 @@ import {
 const EUR = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const PRECISE = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const TABS = [
-  { id: 'overview', title: 'Vue d’ensemble', icon: '◫' },
+  { id: 'overview', title: 'France · direct', icon: '◫' },
+  { id: 'world', title: 'Monde · annuel', icon: '◎' },
+  { id: 'europe', title: 'Europe · annuel', icon: '◉' },
+  { id: 'country', title: 'Pays · détail', icon: '▣' },
   { id: 'mix', title: 'Mix énergétique', icon: '◉' },
   { id: 'trends', title: 'Historique', icon: '⌁' },
   { id: 'data', title: 'Données', icon: '▤' }
