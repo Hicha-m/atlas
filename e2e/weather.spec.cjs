@@ -57,29 +57,35 @@ test('daily forecast cards update selected conditions and hourly chart',async({p
  await expect(page.locator('#chart-summary')).toContainText('2026-10-23');
  await expect(page.locator('.fog-icon').first()).toBeVisible();
 });
-test('heatmap caches repeated map clicks and does not refetch when dragging',async({page,isMobile})=>{
- test.skip(isMobile,'Mouse gestures are tested on desktop/tablet.');
+test('heat layer stays continuous on pan and zoom, without Open-Meteo refetches',async({page,isMobile})=>{
+ test.skip(isMobile,'Mouse dragging is validated in desktop/tablet.');
  let gridCalls=0;
- page.on('request',r=>{if(r.url().includes('api.open-meteo.com/v1/forecast')&&new URL(r.url()).searchParams.get('latitude')?.includes(','))gridCalls++;});
+ page.on('request',request=>{
+  if(request.url().includes('api.open-meteo.com/v1/forecast')&&
+   new URL(request.url()).searchParams.get('latitude')?.includes(','))gridCalls++;
+ });
  await page.goto('/#/weather/heatmap');
+ // A neutral, illustrative background tile is available before real measurements.
+ await expect(page.locator('.leaflet-tile-pane canvas').first()).toBeVisible();
  await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
- const initial=gridCalls;
- expect(initial).toBe(1);
+ expect(gridCalls).toBe(1);
  const map=page.locator('#weather-map');
  await map.click({position:{x:200,y:250}});
- await expect(page.locator('#status')).toContainText('cache');
- await expect(page.locator('#heat-range')).toContainText('30 points');
+ await page.locator('.leaflet-control-zoom-in').click();
+ await page.locator('.leaflet-control-zoom-out').click();
  const box=await map.boundingBox();
- await page.mouse.move(box.x+260,box.y+280);
+ await page.mouse.move(box.x+220,box.y+220);
  await page.mouse.down();
- await page.mouse.move(box.x+330,box.y+285,{steps:7});
+ await page.mouse.move(box.x+310,box.y+240,{steps:8});
  await page.mouse.up();
- await page.waitForTimeout(850);
- expect(gridCalls).toBe(initial);
- const zoomIn=page.locator('.leaflet-control-zoom-in');
- await zoomIn.click();
- await expect(page.locator('#status')).toContainText(/limitation des appels|cache|requête en cours/i,{timeout:5000});
- expect(gridCalls).toBe(initial);
+ await page.waitForTimeout(1100);
+ expect(gridCalls).toBe(1);
+ await expect(page.locator('.leaflet-tile-pane canvas').first()).toBeVisible();
+ await expect(page.locator('#heat-range')).toContainText('30 points');
+ // An explicit refresh may be rate limited, but must not schedule an automatic retry.
+ await page.locator('#reload-heat').click();
+ await expect(page.locator('#status')).toContainText('limite des appels');
+ expect(gridCalls).toBe(1);
 });
 test('normal scrolling is preserved and resizing does not overflow',async({page,isMobile})=>{
  await page.goto('/#/weather/overview');
