@@ -241,7 +241,7 @@ function ensureHeatCanvas(){
    const pixels=ctx.createImageData(48,48);
    const entry=this.heatEntry;
    for(let y=0;y<48;y++)for(let x=0;x<48;x++){
-    let rgb=[28,79,116],alpha=115;
+    let rgb=[28,79,116],alpha=255;
     if(entry?.samples){
      const pixel=L.point((coords.x+(x+.5)/48)*256,(coords.y+(y+.5)/48)*256);
      const ll=L.CRS.EPSG3857.pointToLatLng(pixel,coords.z);
@@ -258,7 +258,7 @@ function ensureHeatCanvas(){
      // Outside the observed region: same color field, visually softened to avoid
      // a rectangular border. These are NOT additional measurements.
      const outside=ll.lat<south||ll.lat>north||longitude>east;
-     alpha=outside?126:180;
+     if(outside)rgb=rgb.map(channel=>Math.round(channel*.82+42*.18));
     }
     const p=(y*48+x)*4;
     pixels.data[p]=rgb[0];pixels.data[p+1]=rgb[1];pixels.data[p+2]=rgb[2];pixels.data[p+3]=alpha;
@@ -268,7 +268,7 @@ function ensureHeatCanvas(){
    return canvas;
   }
  });
- heatOverlay=new HeatTiles({tileSize:256,opacity:.85,updateWhenZooming:false,interactive:false,keepBuffer:2});
+ heatOverlay=new HeatTiles({tileSize:256,opacity:1,updateWhenZooming:false,interactive:false,keepBuffer:2});
  heatOverlay.heatEntry=null;
  heatOverlay.addTo(weatherMap);
 }
