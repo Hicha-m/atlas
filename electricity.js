@@ -10,7 +10,9 @@ const TABS = [
   { id: 'overview', title: 'Vue d’ensemble', icon: '◫' },
   { id: 'mix', title: 'Mix énergétique', icon: '◉' },
   { id: 'trends', title: 'Historique', icon: '⌁' },
-  { id: 'data', title: 'Données', icon: '▤' }
+  { id: 'data', title: 'Données', icon: '▤' },
+  { id: 'europe', title: 'Europe', icon: '🇪🇺' },
+  { id: 'world', title: 'Monde', icon: '🌍' }
 ];
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 const electricalCache = { rows: [], fetchedAt: 0 };
@@ -425,8 +427,8 @@ function exportData(type) {
 }
 export function mountElectricity(container, page = 'overview') {
   state.root = container;
-  state.page = TABS.some(tab => tab.id === page) ? page : 'overview';
-  state.active = true; state.error=null;state.selectedTimestamp=null;state.request++;
+  state.page = TABS.some(tab => tab.id === page && !['europe','world'].includes(tab.id)) ? page : 'overview';
+  state.active = true; state.busy=false;state.error=null;state.selectedTimestamp=null;state.request++;
   container.innerHTML = '<div class="elec-shell">' + shell(state.page) + '</div>';
   E('#electricity-hours').value = String(state.hours);
   E('#electricity-hours').addEventListener('change',event => {
@@ -442,6 +444,6 @@ export function mountElectricity(container, page = 'overview') {
 export function disposeElectricity() {
   state.active=false;
   state.request++;
-  state.abort?.abort();state.abort=null;
+  state.abort?.abort();state.abort=null;state.busy=false;
   state.root=null;
 }
