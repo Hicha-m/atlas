@@ -31,7 +31,7 @@ function rememberWeatherLocation(){document.cookie='atlas_weather_location='+enc
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
 let electricityDispose=null;
-function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`).join(''); }
+function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`+(m[0]==='electricity'?'<div class="atlas-region-links"><a href="#/electricity/overview">🇫🇷 France · récent</a><a href="#/electricity/europe">🇪🇺 Europe · actuel + historique</a><a href="#/electricity/world">🌍 Monde · historique</a></div>':'')).join(''); }
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
