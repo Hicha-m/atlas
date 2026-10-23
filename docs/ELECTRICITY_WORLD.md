@@ -40,3 +40,11 @@ Carte mondiale **annuelle** : pas de faux temps réel global. Le choix de l'ann�
 ## Tests
 
 La CI valide les assets, le JavaScript et les règles métier (parsing OWID, fusion des pays ISO3, mesures manquantes, URL Energy-Charts, production nette). Playwright teste France, Europe, Monde, les erreurs réseau et la navigation responsive. Les tests déterministes utilisent des fixtures API; le contrôle de production doit vérifier les appels réseau réels et les erreurs CORS.
+
+## Incidence détectée en production le 23 octobre 2026 — CORS Energy-Charts
+
+La première exécution **réelle** du workflow Production E2E a confirmé 8 scénarios réussis dont le monde OWID, mais **deux échecs Europe** : `Failed to fetch` pour une requête directe du navigateur vers `https://api.energy-charts.info/public_power`. Interroger l'API avec un client serveur fonctionnait ; le navigateur depuis Vercel ne pouvait pas l'utiliser directement.
+
+Correctif : Vercel Function `api/europe-power.js`, accessible sous `/api/europe-power?country=fr`. Le navigateur appelle désormais **son propre domaine**, et cette fonction interroge Energy-Charts côté serveur. Sécurité : seule la méthode GET est autorisée, pays strictement présents dans une liste de codes européens à deux lettres (protection SSRF), endpoint cible fixé dans le code, dates déterminées côté serveur (trois jours), timeout 13 secondes, aucune clé requise. En-tête HTTP de cache partagé `s-maxage=300, stale-while-revalidate=300`, avec `max-age=60` côté navigateur. Les échecs amont ne sont pas mis en cache.
+
+Cette solution reste une architecture **frontend statique avec une unique fonction serverless légère**, sans VPS ni base de données nécessaire. Les données européennes sont des relevés publiés, pas des garanties de disponibilité 24 h/24. Tests unitaires de sécurité du proxy ajoutés ; tests de production Chromium modifiés pour exiger une réponse HTTP 200 de ce chemin same-origin.
