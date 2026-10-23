@@ -50,7 +50,7 @@ test('europe: live Fraunhofer API gives measured MW, mix and 15-min resolution; 
  await page.goto('/#/electricity/europe');
  await waitSnapshot(page);
  await expect(page.locator('#geo-details')).toContainText('Mesures récentes',{timeout:15000});
- await expect(page.locator('#geo-details')).toContainText('35', {timeout:15000});
+ await expect(page.locator('#geo-details')).toContainText('37,3 GW', {timeout:15000});
  await expect(page.locator('#geo-details')).toContainText('GW');
  await expect(page.locator('#geo-details')).toContainText('15 min');
  await expect(page.locator('#geo-details')).toContainText('Échanges programmés');
