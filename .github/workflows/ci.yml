@@ -29,6 +29,7 @@ jobs:
           npm run check
           node --check e2e/production.spec.cjs
           node --check e2e/visual.spec.cjs
+          node --check e2e/electricity-global.spec.cjs
       - name: Automated tests
         run: node --test tests/*.test.cjs
       - name: HTTP smoke test
