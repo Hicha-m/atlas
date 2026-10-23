@@ -87,7 +87,7 @@ function weatherView(){
 function initWeatherMap(){
  const el=$('#weather-map');if(!el)return;
  if(typeof L==='undefined'){el.textContent='La carte est indisponible : bibliothèque cartographique non chargée.';return;}
- weatherMap=L.map(el,{scrollWheelZoom:false,zoomControl:true}).setView([city.latitude,city.longitude],currentWeatherPage==='heatmap'?5:6);
+ weatherMap=L.map(el,{scrollWheelZoom:false,zoomControl:true,fadeAnimation:false}).setView([city.latitude,city.longitude],currentWeatherPage==='heatmap'?5:6);
  // Zoom intentionally requires Ctrl when pointer is above the map, avoiding accidental page-scroll capture.
  el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();weatherMap.setZoom(weatherMap.getZoom()+(e.deltaY<0?1:-1));},{passive:false});
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(weatherMap);
