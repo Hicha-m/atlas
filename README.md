@@ -138,3 +138,7 @@ Lire [CONTRIBUTING.md](CONTRIBUTING.md) avant une pull request.
 - **Reproduire les tests** : `npm run test:e2e`, `npm run test:live`, `npm run test:visual` après installation de Chromium.
 
 Voir [la stratégie de test et ses limites](docs/TESTING.md).
+
+## Couverture internationale de l'électricité
+
+La navigation propose **France** (RTE/ODRE), **Europe** (historique annuel + production publique nette récente Energy-Charts) et **Monde** (carte annuelle par pays via OWID/Ember). Les données annuelles ne sont jamais présentées comme temps réel. [Documentation technique complète](docs/ELECTRICITY_WORLD.md).
