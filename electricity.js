@@ -69,11 +69,7 @@ function shell(page) {
     '<div class="actions"><button type="button" class="btn" id="electricity-json">↓ JSON</button>' +
     '<button type="button" class="btn" id="electricity-csv">↓ CSV</button>' +
     '<button type="button" class="btn primary" id="electricity-refresh">↻ Actualiser</button></div></div>' +
-    '<nav class="weather-tabs elec-tabs" aria-label="Vues du module électricité">' +
-    TABS.map(tab => '<a class="weather-tab ' + (page === tab.id ? 'selected' : '') +
-      '" href="#/electricity/' + tab.id + '"' + (page === tab.id ? ' aria-current="page"' : '') +
-      '><span class="tab-icon" aria-hidden="true">' + tab.icon + '</span>' + tab.title + '</a>').join('') +
-    '</nav><section class="elec-toolbar panel" aria-label="Filtres électricité">' +
+    '<section class="elec-toolbar panel" aria-label="Filtres électricité">' +
     '<div class="elec-region"><span class="elec-flag" aria-hidden="true">🇫🇷</span><div><strong>France entière</strong>' +
     '<small>Données nationales RTE · Pas de 15 minutes</small></div></div>' +
     '<div class="elec-filters"><label for="electricity-hours">Période <select class="field" id="electricity-hours">' +
