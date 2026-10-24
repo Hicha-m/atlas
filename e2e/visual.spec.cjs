@@ -29,11 +29,23 @@ test.beforeEach(async({page})=>{
 async function settle(page){
  await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important} .elec-indicator,.elec-status-dot{box-shadow:none!important}'});
  await page.evaluate(()=>document.fonts.ready);
+ // The visual baseline deliberately uses a 1px transparent OSM stub. Wait for
+ // the actual Leaflet lifecycle and every fixture-driven widget to settle.
+ await page.waitForLoadState('networkidle');
+ await page.evaluate(async()=>{
+  const map=document.querySelector('#weather-map');
+  if(!map)return;
+  await Promise.all([...map.querySelectorAll('img.leaflet-tile')].map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
+   img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});
+  })));
+ });
 }
 test('weather overview visual reference',async({page})=>{
  await page.goto('/#/weather/overview');
  await expect(page.locator('.day')).toHaveCount(7);
  await expect(page.locator('#chart .chart-point').first()).toBeVisible();
+ await expect(page.locator('.now .temp')).toContainText('°');
+ await expect(page.locator('.leaflet-tile-loaded').first()).toBeVisible();
  await settle(page);
  await expect(page.locator('#app')).toHaveScreenshot('weather-overview.png',{animations:'disabled',maxDiffPixelRatio:0.015});
 });

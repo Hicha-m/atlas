@@ -44,3 +44,12 @@ Pour revoir une baseline après modification intentionnelle du design : exécute
 - Aucun test ne remplace une revue visuelle critique des fonctionnalités, du contraste, du clavier et des technologies d'assistance.
 
 Référence UI : [GitHub Primer](https://primer.style/) ; langage graphique repris en composants Atlas originaux.
+
+
+## Pourquoi les anciennes captures Météo n'affichent pas les rues
+
+Le fichier `e2e/visual.spec.cjs` intercepte intentionnellement les tuiles `tile.openstreetmap.org` et renvoie un PNG transparent de 1 px. Les captures dans `e2e/visual.spec.cjs-snapshots/` sont des références **déterministes** pour les composants (typographie, cartes KPI, courbes) : elles ne valident pas la fidélité du fond de carte OSM. Cela explique pourquoi `weather-overview-*-chromium-linux.png` peut sembler manquer de détails cartographiques.
+
+Les captures **réelles**, prises dans `e2e/production.spec.cjs`, n'interceptent ni OSM ni Open-Meteo. Le test de production attend une véritable tuile Leaflet chargée et une valeur météo avant capture, avec fichiers archivés sous `atlas-production-live-evidence` dans GitHub Actions. Un manque de tuiles ou un CDN bloqué est un vrai défaut d'intégration, pas un problème résolu en ajoutant un délai fixe.
+
+La carte thermique affiche un calque Canvas translucide à 70 % par défaut, réglable de 35 à 95 %. Chaque dalle est peinte sur 258 px pour 256 px de grille, avec un léger chevauchement anti-jointure. Le dégradé en dehors des 30 points interpolés est clairement indicatif. Le slider n'effectue **aucune nouvelle requête** ; seuls chargement initial et rafraîchissement explicite peuvent demander les mesures.

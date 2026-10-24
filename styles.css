@@ -166,3 +166,13 @@ nav.weather-tabs,nav.elec-tabs{flex-direction:row;align-items:center;flex-wrap:n
 nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-space:nowrap}
 
 .atlas-region-links{display:grid;gap:3px;padding:1px 7px 8px 31px}.atlas-region-links a{display:block;color:#9198a1;padding:7px 9px;font-size:11px;text-decoration:none;border-radius:6px}.atlas-region-links a:hover{color:#58a6ff;background:#21262d}
+
+/* Heatmap readability: the whole Leaflet pane is translucent (not individual tile pixels).
+   Adjacent 258px canvases overlap their 256px grid cells to hide fractional pixel seams. */
+.heat-map-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:10px 0 14px;padding:12px 14px;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#c9d1d9;font-size:12px}
+.heat-map-controls label{font-weight:600;white-space:nowrap}
+.heat-map-controls output{margin-left:6px;color:#58a6ff;font-variant-numeric:tabular-nums}
+.heat-map-controls input[type=range]{flex:1 1 150px;max-width:300px;accent-color:#58a6ff;cursor:pointer}
+.heat-map-control-hint{color:#9198a1;font-size:11px}
+.leaflet-container .atlas-heat-tile{width:258px!important;height:258px!important;max-width:none!important;max-height:none!important;pointer-events:none}
+@media(max-width:680px){.heat-map-controls input[type=range]{flex-basis:100%;max-width:none}.heat-map-controls{gap:9px}}
