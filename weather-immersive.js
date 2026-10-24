@@ -284,6 +284,30 @@ export function mountImmersive(root){
   localStorage.setItem(favoriteKey,JSON.stringify(state.favorites));
   build();
  }
+ function providerUrl(kind,place){
+  // Local static development uses the public provider directly. Vercel production
+  // uses a cached same-origin function, avoiding browser/CORS stalls.
+  if(['localhost','127.0.0.1'].includes(window.location.hostname))
+   return kind==='forecast'?forecastUrl(place):airUrl(place);
+  const params=new URLSearchParams({kind,lat:String(place.latitude),lon:String(place.longitude)});
+  return '/api/immersive-weather?'+params;
+ }
+ async function fetchWithDeadline(url,controller){
+  let timedOut=false;
+  const timer=setTimeout(()=>{timedOut=true;controller.abort();},12000);
+  try{
+   const response=await fetch(url,{signal:controller.signal});
+   if(!response.ok){
+    let message='HTTP '+response.status;
+    try{const payload=await response.json();if(payload?.error)message+=' · '+payload.error;}catch{}
+    throw Error(message);
+   }
+   return await response.json();
+  }catch(error){
+   if(timedOut)throw Error('délai fournisseur dépassé (12 s)');
+   throw error;
+  }finally{clearTimeout(timer);}
+ }
  async function loadForecast(refresh=false){
   if(!alive())return;
   const sequence=++state.currentRequest,location={...state.city};
@@ -292,9 +316,7 @@ export function mountImmersive(root){
   state.loading=true;state.error=null;state.airLoading=true;state.airError=null;state.air=null;
   if(!state.forecast||refresh&&idOf(location)!==idOf(state.previousLocation||LOCATION_DEFAULT))state.forecast=null;
   build();
-  const req=fetch(forecastUrl(location),{signal:state.forecastAbort.signal}).then(async r=>{
-   if(!r.ok)throw Error('HTTP '+r.status);return r.json();
-  }).then(json=>{
+  const req=fetchWithDeadline(providerUrl('forecast',location),state.forecastAbort).then(json=>{
    if(sequence!==state.currentRequest||!alive())return;
    if(!json?.current||!Array.isArray(json?.daily?.time)||!Array.isArray(json?.hourly?.time))throw Error('Réponse météo incomplète');
    state.forecast=json;state.previousLocation=location;state.loading=false;state.updated=new Date();build();
@@ -304,9 +326,7 @@ export function mountImmersive(root){
    state.error='Impossible de charger Open-Meteo ('+error.message+').';
    state.loading=false;build();
   });
-  const aq=fetch(airUrl(location),{signal:state.airAbort.signal}).then(async r=>{
-   if(!r.ok)throw Error('HTTP '+r.status);return r.json();
-  }).then(json=>{
+  const aq=fetchWithDeadline(providerUrl('air',location),state.airAbort).then(json=>{
    if(sequence!==state.currentRequest||!alive())return;
    state.air=json;state.airLoading=false;
    if(state.forecast)updateAirMetrics();

@@ -94,7 +94,7 @@ test('production: Europe combines historical country data with actual Energy-Cha
 test('production: Météo immersive renders true forecast and OSM map on desktop/mobile',async({page},info)=>{
  const forecastStatuses=[];
  page.on('response',response=>{
-  if(response.url().includes('api.open-meteo.com/v1/forecast'))forecastStatuses.push(response.status());
+  if(response.url().includes('/api/immersive-weather?kind=forecast'))forecastStatuses.push(response.status());
  });
  await page.goto(PROD+'/#/weather/immersive',{waitUntil:'domcontentloaded'});
  await expect(page.getByRole('heading',{name:'Météo immersive'})).toBeVisible();
