@@ -30,10 +30,11 @@ function savedWeatherLocation(){try{const m=document.cookie.match(/(?:^|; )atlas
 function rememberWeatherLocation(){document.cookie='atlas_weather_location='+encodeURIComponent(JSON.stringify(city))+'; Max-Age=15552000; Path=/; SameSite=Lax';}
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
-let electricityDispose=null;
-function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`+(m[0]==='electricity'?'<div class="atlas-region-links"><a href="#/electricity/overview">🇫🇷 France · récent</a><a href="#/electricity/europe">🇪🇺 Europe · actuel + historique</a><a href="#/electricity/world">🌍 Monde · historique</a></div>':'')).join(''); }
+let electricityDispose=null, immersiveDispose=null;
+function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`+(m[0]==='weather'?'<div class="atlas-region-links"><a href="#/weather/overview">☁️ Météo Atlas</a><a href="#/weather/immersive">✨ Météo immersive · Nouveau</a></div>':'')+(m[0]==='electricity'?'<div class="atlas-region-links"><a href="#/electricity/overview">🇫🇷 France · récent</a><a href="#/electricity/europe">🇪🇺 Europe · actuel + historique</a><a href="#/electricity/world">🌍 Monde · historique</a></div>':'')).join(''); }
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
+ if(immersiveDispose){immersiveDispose();immersiveDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
  clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
  heatController?.abort();heatController=null;heatBusy=false;heatRenderedKey=null;
@@ -41,7 +42,15 @@ function render(){
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
+ if(!root)home();else if(root==='weather'&&id.split('/')[1]==='immersive'){
+   currentWeatherPage='immersive';
+   $('#app').innerHTML='<div class="panel" role="status">Chargement de Météo immersive…</div>';
+   import('./weather-immersive.js').then(module=>{
+    if(location.hash==='#/weather/immersive'&&$('#app'))immersiveDispose=module.mountImmersive($('#app'));
+   }).catch(error=>{
+    if(location.hash==='#/weather/immersive')$('#app').innerHTML='<div class="panel" role="alert">Météo immersive indisponible : '+safe(error.message)+'</div>';
+   });
+ }else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du comparateur électrique international…</div>';
    const route=id.split('/')[1];
    import('./electricity-world.js').then(module=>{
@@ -65,7 +74,7 @@ function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.t
 function placeholder(m){if(!m){home();return;}$('#app').innerHTML=`<a class="back" href="#/">← Tous les modules</a><div class="eyebrow">MODULE EN PRÉPARATION</div><h1>${m[3]} ${m[1]}</h1><p class="lead">${m[2]}</p><div class="empty"><h2>Ce module sera développé prochainement.</h2><p>Fournisseur prévu : ${safe(m[4])}. Il sera intégré à la même architecture que le module Météo, avec des outils adaptés à ces données.</p><a class="btn" href="#/">Revenir au catalogue →</a></div>`;}
 function weatherView(){
  const p=currentWeatherPage;
- const tabs=[['overview','◫','Vue d’ensemble'],['map','◉','Carte interactive'],['heatmap','◈','Carte des chaleurs'],['data','▤','Données horaires']];
+ const tabs=[['overview','◫','Vue d’ensemble'],['map','◉','Carte interactive'],['heatmap','◈','Carte des chaleurs'],['data','▤','Données horaires'],['immersive','✦','Météo immersive']];
  $('#app').innerHTML=`<div class="repo-heading"><div class="repo-title"><span class="repo-icon">☁</span><div><div class="repo-eyebrow">Atlas Live / Module 01</div><h1>Météo mondiale <span class="state-pill">Actif</span></h1><p>Prévisions ouvertes, cartes interactives et données exportables.</p></div></div><div class="actions"><button class="btn" id="exportjson">↓ JSON</button><button class="btn" id="exportcsv">↓ CSV</button><button class="btn" id="refresh">↻ Actualiser</button></div></div>
  <nav class="weather-tabs" aria-label="Vues du module météo">${tabs.map(([key,icon,label])=>`<a href="#/weather/${key}" class="weather-tab ${p===key?'selected':''}" ${p===key?'aria-current="page"':''}><span class="tab-icon">${icon}</span>${label}</a>`).join('')}</nav>
  <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Chercher ou choisir une ville" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /><div id="city-suggestions" class="city-suggestions" role="listbox" hidden></div></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
