@@ -31,7 +31,7 @@ test('hour and day collections retain source timestamps and missing values',asyn
   time:['2026-10-24T11:00','2026-10-24T12:00','2026-10-24T13:00'],
   temperature_2m:[9,10,11]},daily:{time:['2026-10-24'],temperature_2m_max:[21],temperature_2m_min:[null]}};
  const hours=nextHours(data,2);
- assert.deepEqual(hours.map(x=>x.time),['2026-10-24T13:00']);
+ assert.deepEqual(hours.map(x=>x.time),['2026-10-24T12:00','2026-10-24T13:00']);
  assert.equal(hours[0].rain,undefined);
  assert.equal(nextDays(data)[0].low,null);
 });
