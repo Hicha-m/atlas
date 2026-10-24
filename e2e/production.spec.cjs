@@ -37,7 +37,9 @@ test('production: weather receives a real Open-Meteo forecast',async({page},info
   await expect(page.locator('.now .temp')).toContainText('°');
   await expect(page.locator('#chart .chart-point').first()).toBeVisible();
   expect(requests.includes(200)).toBeTruthy();
-  await page.screenshot({path:info.outputPath('production-weather-live.png'),fullPage:true});
+  await expect(page.locator('.leaflet-tile-loaded img, img.leaflet-tile-loaded').first()).toBeVisible({timeout:18000});
+  await page.evaluate(async()=>{await document.fonts.ready;});
+  await page.screenshot({path:info.outputPath('production-weather-live.png'),fullPage:true,animations:'disabled'});
 });
 test('production: deployed pages and navigation do not overflow',async({page},info)=>{
   await page.goto(PROD+'/#/',{waitUntil:'domcontentloaded'});
@@ -59,7 +61,9 @@ test('production: optional live temperature heatmap overlay',async({page},info)=
     if(msg.includes('Carte thermique :')&&!msg.includes('cache')&&!msg.includes('points'))throw Error(msg);
     return page.locator('#heat-range').innerText();
   },{timeout:45000}).toContain('points');
-  await expect(page.locator('.leaflet-image-layer')).toBeVisible();
+  await expect(page.locator('canvas.atlas-heat-tile').first()).toBeVisible();
+  await expect(page.locator('#heat-opacity')).toHaveValue('72');
+  await expect(page.locator('img.leaflet-tile-loaded').first()).toBeVisible();
   await page.screenshot({path:info.outputPath('production-heatmap-live.png'),fullPage:true});
 });
 
