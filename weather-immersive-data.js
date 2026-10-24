@@ -104,7 +104,7 @@ export function pollenStatus(air){
  if(!pollen.length)return 'Indisponible';
  const highest=Math.max(...pollen);
  // Measured pollen concentration only: no standardized universal risk score.
- return decimal(highest,0)+' grains/m³ (max. parmi les pollens disponibles)';
+ return decimal(highest,0)+' grains/m³';
 }
 export function insight(data){
  const current=data?.current||{};
