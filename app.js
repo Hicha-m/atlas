@@ -70,7 +70,7 @@ function weatherView(){
  <nav class="weather-tabs" aria-label="Vues du module météo">${tabs.map(([key,icon,label])=>`<a href="#/weather/${key}" class="weather-tab ${p===key?'selected':''}" ${p===key?'aria-current="page"':''}><span class="tab-icon">${icon}</span>${label}</a>`).join('')}</nav>
  <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Chercher ou choisir une ville" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /><div id="city-suggestions" class="city-suggestions" role="listbox" hidden></div></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
  ${p==='overview'||p==='map'? `<section class="panel map-panel"><div class="map-heading"><div><h3>${p==='map'?'Explorer la carte':'Localiser un point'}</h3><p>Cliquez sur un lieu pour ses prévisions. Ctrl + molette pour zoomer.</p></div><div id="coordinates" class="coordinates"></div></div><div id="weather-map" class="${p==='map'?'map-full':''}" aria-label="Carte mondiale interactive"></div><div class="map-help">© OpenStreetMap contributors · La dernière position est retenue 180 jours dans un cookie fonctionnel.</div></section>`:''}
- ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><div id="heat-scale" class="heat-scale" aria-label="Correspondance couleurs et températures">Échelle en chargement…</div><p class="map-help">Déplacez et zoomez librement, sans nouvel appel thermique. Seul « Actualiser la zone » récupère de nouvelles mesures. Hors de la zone échantillonnée, les couleurs sont prolongées à titre indicatif et ne représentent pas des relevés locaux.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
+ ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div class="heat-map-controls" aria-label="Réglages de la carte thermique"><label for="heat-opacity">Intensité thermique <output id="heat-opacity-value" for="heat-opacity">72 %</output></label><input type="range" id="heat-opacity" min="35" max="95" step="5" value="72" aria-label="Opacité de la carte thermique"><span class="heat-map-control-hint">Le fond OpenStreetMap reste visible sous les températures.</span></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><div id="heat-scale" class="heat-scale" aria-label="Correspondance couleurs et températures">Échelle en chargement…</div><p class="map-help">Déplacez et zoomez librement, sans nouvel appel thermique. Seul « Actualiser la zone » récupère de nouvelles mesures. Hors de la zone échantillonnée, les couleurs sont prolongées à titre indicatif et ne représentent pas des relevés locaux.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
  <div id="result"></div>
  <div class="panel sources"><strong>Données & confidentialité</strong><p>Météo : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Carte : <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Un cookie strictement fonctionnel atlas_weather_location conserve uniquement votre dernière position sélectionnée. Le bouton « Oublier ma position » le supprime. Aucune géolocalisation automatique.</p></div>`;
  $('#searchform').addEventListener('submit',searchCity);
@@ -81,7 +81,15 @@ function weatherView(){
  $('#days').onchange=()=>loadWeather();
  $('#forget-location').onclick=()=>{document.cookie='atlas_weather_location=; Max-Age=0; Path=/; SameSite=Lax';city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698};$('#city').value='Marseille';if(weatherMap){weatherMap.setView([city.latitude,city.longitude],6);weatherMarker?.setLatLng([city.latitude,city.longitude]);}updateCoordinates();loadWeather();status('Préférence effacée. Marseille est désormais le point affiché.');};
  if(p!=='data')initWeatherMap();
- if(p==='heatmap'){$('#reload-heat').onclick=()=>loadHeatmap(true);loadHeatmap();}
+ if(p==='heatmap'){
+  $('#reload-heat').onclick=()=>loadHeatmap(true);
+  $('#heat-opacity').addEventListener('input',event=>{
+   const level=Number(event.target.value);
+   $('#heat-opacity-value').textContent=level+' %';
+   if(heatOverlay)heatOverlay.setOpacity(level/100);
+  });
+  loadHeatmap();
+ }
  loadWeather();
 }
 function initWeatherMap(){
@@ -233,17 +241,21 @@ function ensureHeatCanvas(){
  const HeatTiles=L.GridLayer.extend({
   createTile(coords){
    const canvas=document.createElement('canvas');
-   canvas.width=256;canvas.height=256;
+   // Two-pixel bleed on the right/bottom prevents Leaflet subpixel white seams.
+   // Adjacent tiles are still positioned on a strict 256px grid.
+   canvas.width=258;canvas.height=258;
+   canvas.className='atlas-heat-tile';
+   canvas.style.width='258px';canvas.style.height='258px';
    const context=canvas.getContext('2d');
-   const low=document.createElement('canvas');low.width=48;low.height=48;
+   const low=document.createElement('canvas');low.width=64;low.height=64;
    const ctx=low.getContext('2d');
    if(!ctx||!context)return canvas;
-   const pixels=ctx.createImageData(48,48);
+   const pixels=ctx.createImageData(64,64);
    const entry=this.heatEntry;
-   for(let y=0;y<48;y++)for(let x=0;x<48;x++){
+   for(let y=0;y<64;y++)for(let x=0;x<64;x++){
     let rgb=[28,79,116],alpha=255;
     if(entry?.samples){
-     const pixel=L.point((coords.x+(x+.5)/48)*256,(coords.y+(y+.5)/48)*256);
+     const pixel=L.point(coords.x*256+(x+.5)*258/64,coords.y*256+(y+.5)*258/64);
      const ll=L.CRS.EPSG3857.pointToLatLng(pixel,coords.z);
      const [[south,west],[north,east]]=entry.bounds;
      // Keep the closest wrapped longitude to the measured region.
@@ -257,18 +269,22 @@ function ensureHeatCanvas(){
      rgb=temperatureColor(value,entry.min,entry.max);
      // Outside the observed region: same color field, visually softened to avoid
      // a rectangular border. These are NOT additional measurements.
-     const outside=ll.lat<south||ll.lat>north||longitude>east;
-     if(outside)rgb=rgb.map(channel=>Math.round(channel*.82+42*.18));
+     const beyondLat=Math.max(0,south-ll.lat,ll.lat-north);
+     const beyondLon=Math.max(0,west-longitude,longitude-east);
+     // Smoothly transition into indicative extrapolation: no rectangular edge.
+     const fraction=Math.max(beyondLat/Math.max(1,(north-south)*.35),beyondLon/Math.max(1,(east-west)*.35));
+     const t=Math.min(1,fraction),blend=(t*t*(3-2*t))*.15;
+     if(blend)rgb=rgb.map(channel=>Math.round(channel*(1-blend)+42*blend));
     }
-    const p=(y*48+x)*4;
+    const p=(y*64+x)*4;
     pixels.data[p]=rgb[0];pixels.data[p+1]=rgb[1];pixels.data[p+2]=rgb[2];pixels.data[p+3]=alpha;
    }
    ctx.putImageData(pixels,0,0);
-   context.imageSmoothingEnabled=true;context.drawImage(low,0,0,256,256);
+   context.imageSmoothingEnabled=true;context.drawImage(low,0,0,258,258);
    return canvas;
   }
  });
- heatOverlay=new HeatTiles({tileSize:256,opacity:1,updateWhenZooming:false,interactive:false,keepBuffer:2});
+ heatOverlay=new HeatTiles({tileSize:256,opacity:Number($('#heat-opacity')?.value||72)/100,updateWhenZooming:false,interactive:false,keepBuffer:2});
  heatOverlay.heatEntry=null;
  heatOverlay.addTo(weatherMap);
 }
