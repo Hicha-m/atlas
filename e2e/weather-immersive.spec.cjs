@@ -70,6 +70,7 @@ test('favorite places, geocoding, saved cookie and classic route work',async({pa
  await page.locator('#wi-location-trigger').click();
  await expect(page.locator('#wi-favorites')).toContainText('Marseille');
  await page.getByRole('button',{name:'Fermer'}).click();
+ if(await page.locator('#sidebar-toggle').isVisible())await page.locator('#sidebar-toggle').click();
  await page.locator('.atlas-region-links a[href="#/weather/overview"]').click();
  await expect(page.getByRole('heading',{name:/Météo mondiale/})).toBeVisible();
  expect(count.geo).toBeGreaterThan(0);
@@ -103,7 +104,8 @@ test('weather view retains old Atlas routes and responsive mobile layout',async(
  await fixtures(page);
  await page.goto('/#/weather/overview');
  await expect(page.getByRole('heading',{name:/Météo mondiale/})).toBeVisible();
- await page.getByRole('link',{name:/Météo immersive/}).last().click();
+ if(await page.locator('#sidebar-toggle').isVisible())await page.locator('#sidebar-toggle').click();
+ await page.locator('.atlas-region-links a[href="#/weather/immersive"]').click();
  await expect(page.getByRole('heading',{name:'Météo immersive'})).toBeVisible();
  for(const width of [360,390,768,1024,1440]){
   await page.setViewportSize({width,height:850});
