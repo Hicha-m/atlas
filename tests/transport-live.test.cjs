@@ -83,3 +83,21 @@ test('SNCF API emits trimmed structured predictions with source timestamp',async
  assert.equal(r.code,200);assert.equal(r.body.departures[0].line,'TGV');assert.equal(r.body.feedUpdated,new Date(base).toISOString());}
  finally{globalThis.fetch=old;}
 });
+
+test('Marseille GTFS-RT service alert preserves producer message, line and dates',async()=>{
+ const {decodeGtfsServiceAlerts}=await live();
+ const translated=text=>msg(bytes(1,msg(string(1,text),string(2,'fr'))));
+ const a=msg(
+  bytes(1,msg(field(1,base/1000-60),field(2,base/1000+3600))),
+  bytes(5,msg(string(2,'RTM:M1'))),
+  bytes(10,translated('Travaux sur la ligne')),
+  bytes(11,translated('Service modifié pendant la matinée')));
+ const entity=msg(string(1,'incident-1'),bytes(5,a));
+ const feed=msg(bytes(1,msg(string(1,'2.0'),field(3,base/1000))),bytes(2,entity));
+ const info=decodeGtfsServiceAlerts(feed,base);
+ assert.equal(info.alerts.length,1);
+ assert.equal(info.alerts[0].title,'Travaux sur la ligne');
+ assert.equal(info.alerts[0].routes[0],'RTM:M1');
+ assert.equal(info.alerts[0].active,true);
+ assert.equal(info.updated,new Date(base).toISOString());
+});
