@@ -90,3 +90,22 @@ test('production: Europe combines historical country data with actual Energy-Cha
  expect(upstream).toContain(200);
  await page.screenshot({path:info.outputPath('production-electricity-europe.png'),fullPage:true});
 });
+
+test('production: Météo immersive renders true forecast and OSM map on desktop/mobile',async({page},info)=>{
+ const forecastStatuses=[];
+ page.on('response',response=>{
+  if(response.url().includes('api.open-meteo.com/v1/forecast'))forecastStatuses.push(response.status());
+ });
+ await page.goto(PROD+'/#/weather/immersive',{waitUntil:'domcontentloaded'});
+ await expect(page.getByRole('heading',{name:'Météo immersive'})).toBeVisible();
+ await expect(page.locator('.wi-current-temp')).toContainText('°',{timeout:30000});
+ await expect(page.locator('.wi-hour')).toHaveCount(18,{timeout:30000});
+ await expect(page.locator('button.wi-day')).toHaveCount(10,{timeout:30000});
+ await expect(page.locator('.wi-metric')).toHaveCount(8);
+ expect(forecastStatuses).toContain(200);
+ await expect(page.locator('#wi-mini-map img.leaflet-tile-loaded').first()).toBeVisible({timeout:20000});
+ await page.evaluate(()=>document.fonts.ready);
+ const layout=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
+ expect(layout.scroll).toBeLessThanOrEqual(layout.client+2);
+ await page.screenshot({path:info.outputPath('production-weather-immersive.png'),fullPage:true,animations:'disabled'});
+});
