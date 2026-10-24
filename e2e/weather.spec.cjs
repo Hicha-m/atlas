@@ -87,6 +87,31 @@ test('heat layer stays continuous on pan and zoom, without Open-Meteo refetches'
  await expect(page.locator('#status')).toContainText('limite des appels');
  expect(gridCalls).toBe(1);
 });
+test('heat opacity exposes real OSM basemap and remains seamless on zoom without a forecast grid refetch',async({page})=>{
+ let gridCalls=0;
+ page.on('request',request=>{
+  if(request.url().includes('api.open-meteo.com/v1/forecast')&&new URL(request.url()).searchParams.get('latitude')?.includes(','))gridCalls++;
+ });
+ await page.goto('/#/weather/heatmap');
+ await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
+ const slider=page.locator('#heat-opacity');
+ await expect(slider).toHaveValue('72');
+ await expect(page.locator('.leaflet-tile-pane .atlas-heat-tile').first()).toBeVisible();
+ await slider.fill('50');
+ await expect(page.locator('#heat-opacity-value')).toHaveText('50 %');
+ const properties=await page.evaluate(()=>{
+  const tile=document.querySelector('canvas.atlas-heat-tile');
+  const layer=tile?.closest('.leaflet-layer');
+  return {canvasWidth:tile?.width,canvasHeight:tile?.height,cssWidth:tile?.style.width,opacity:Number(layer?.style.opacity)};
+ });
+ expect(properties.canvasWidth).toBe(258);
+ expect(properties.canvasHeight).toBe(258);
+ expect(properties.cssWidth).toBe('258px');
+ expect(properties.opacity).toBeCloseTo(.5,2);
+ await page.locator('.leaflet-control-zoom-in').click();
+ await expect(page.locator('.atlas-heat-tile').first()).toBeVisible();
+ expect(gridCalls).toBe(1);
+});
 test('normal scrolling is preserved and resizing does not overflow',async({page,isMobile})=>{
  await page.goto('/#/weather/overview');
  await assertNoOverflow(page);
