@@ -15,6 +15,8 @@ async function fixtures(page){
   if(provider==='tfl')return route.fulfill({json:{
    station:'Waterloo',provider:'Transport for London',fetchedAt:fetched(),
    departures:[{id:'tfl-a',line:'Northern',mode:'tube',destination:'Morden',station:'Waterloo',expected:future(),delay:null,platform:'Southbound'}]}});
+  if(provider==='marseille-alerts')return route.fulfill({json:{provider:'La Métropole Mobilité',fetchedAt:fetched(),updated:fetched(),
+   alerts:[{title:'Service perturbé',description:'Travaux sur la ligne',routes:['RTM:M1'],active:true}]}});
   if(provider==='tfl-status')return route.fulfill({json:{provider:'Transport for London',fetchedAt:fetched(),
    statuses:[{id:'northern',name:'Northern',status:'Good Service',normal:true},{id:'district',name:'District',status:'Severe Delays',reason:'Incident',normal:false}]}});
   return route.fulfill({status:502,json:{error:'Not available'}});
@@ -25,7 +27,7 @@ test('Transports landing is a mode chooser and opens actual SNCF departures',asy
  const calls=await fixtures(page);
  await page.goto('/#/transport');
  await expect(page.getByRole('heading',{name:/Vos transports/})).toBeVisible();
- await expect(page.locator('.tl-mode-card')).toHaveCount(7);
+ await expect(page.locator('.tl-mode-card')).toHaveCount(8);
  await page.locator('a[href="#/transport/trains"].tl-mode-card').click();
  await expect(page.locator('.tl-departure')).toHaveCount(1);
  await expect(page.locator('.tl-departure')).toContainText('TGV');
@@ -75,4 +77,13 @@ test('Mobile and desktop transport pages avoid horizontal overflow and permit dr
  await expect(page.locator('#atlas-sidebar')).toBeInViewport();
  await page.locator('#atlas-sidebar a[href="#/transport/bus"]').click();
  await expect(page.getByRole('heading',{name:/Bus/})).toBeVisible();
+});
+
+test('Marseille RTM metropolitan alerts use actual provider messages and show no fake schedule',async({page})=>{
+ await fixtures(page);
+ await page.goto('/#/transport/marseille');
+ await expect(page.locator('.tl-status-card')).toHaveCount(1);
+ await expect(page.locator('.tl-status-card')).toContainText('Travaux sur la ligne');
+ await expect(page.locator('.tl-status-card')).toContainText('RTM:M1');
+ await expect(page.locator('.tl-departure')).toHaveCount(0);
 });
