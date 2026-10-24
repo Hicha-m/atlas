@@ -407,13 +407,16 @@ function exportData(format){if(!weather){status('Chargez des données avant de l
 function initSidebarDrawer(){
  const toggle=$('#sidebar-toggle'),close=$('#sidebar-close'),backdrop=$('#sidebar-backdrop'),sidebar=$('#atlas-sidebar');
  if(!toggle||!close||!backdrop||!sidebar)return;
+ const mq=window.matchMedia('(max-width: 900px)');
  const open=()=>document.body.classList.contains('atlas-sidebar-open');
  const setOpen=value=>{
   document.body.classList.toggle('atlas-sidebar-open',value);
   toggle.setAttribute('aria-expanded',String(value));
   toggle.setAttribute('aria-label',value?'Fermer le menu de navigation':'Ouvrir le menu de navigation');
   backdrop.setAttribute('aria-hidden',String(!value));
-  if(value)close.focus();else toggle.focus();
+  sidebar.inert=mq.matches&&!value;
+  sidebar.setAttribute('aria-hidden',String(mq.matches&&!value));
+  if(value)close.focus();else if(mq.matches)toggle.focus();
  };
  toggle.addEventListener('click',()=>setOpen(!open()));
  close.addEventListener('click',()=>setOpen(false));
@@ -421,9 +424,14 @@ function initSidebarDrawer(){
  sidebar.addEventListener('click',event=>{if(event.target.closest('a'))setOpen(false);});
  window.addEventListener('hashchange',()=>{if(open())setOpen(false);});
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&open())setOpen(false);});
- const mq=window.matchMedia('(max-width: 900px)');
- const onDesktop=()=>{if(!mq.matches&&open())setOpen(false);};
- if(mq.addEventListener)mq.addEventListener('change',onDesktop);
+ const onViewportChange=()=>{
+  if(open())setOpen(false);
+  sidebar.inert=mq.matches&&!open();
+  sidebar.setAttribute('aria-hidden',String(mq.matches&&!open()));
+ };
+ if(mq.addEventListener)mq.addEventListener('change',onViewportChange);
+ sidebar.inert=mq.matches;
+ sidebar.setAttribute('aria-hidden',String(mq.matches));
  let start=null;
  document.addEventListener('touchstart',event=>{
   if(!mq.matches||event.touches.length!==1)return;
