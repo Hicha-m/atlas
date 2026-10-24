@@ -8,7 +8,8 @@ const fixture=[
   resources:[{title:'Horaires',format:'GTFS',original_url:'https://example.org/gtfs.zip',is_available:true},{title:'Temps réel',format:'GTFS-RT',original_url:'https://example.org/rt.pb'}]},
  {id:'b',title:'Réseau Lyon',publisher:'Lyon',resources:[{format:'NeTEx',url:'https://example.org/data.xml'}]}
 ];
-test('PAN metadata keeps provider URLs and distinguishes RT publication from actual departures',async()=>{\n const {normalizeCatalogue}=await transport();
+test('PAN metadata keeps provider URLs and distinguishes RT publication from actual departures',async()=>{
+ const {normalizeCatalogue}=await transport();
  const rows=normalizeCatalogue(fixture);
  assert.equal(rows.length,2);
  assert.equal(rows[0].hasRealtime,true);
@@ -18,7 +19,8 @@ test('PAN metadata keeps provider URLs and distinguishes RT publication from act
  assert.equal(rows[0].page,'https://transport.data.gouv.fr/datasets/rtm');
  assert.equal(rows[1].page,null);
 });
-test('search, format and RT filter and CSV escaping are deterministic',async()=>{\n const {normalizeCatalogue,filterCatalogue,catalogueCsv}=await transport();
+test('search, format and RT filter and CSV escaping are deterministic',async()=>{
+ const {normalizeCatalogue,filterCatalogue,catalogueCsv}=await transport();
  const rows=normalizeCatalogue(fixture);
  assert.equal(filterCatalogue(rows,{query:'Marseille',format:'GTFS-RT',realtime:true}).length,1);
  assert.equal(filterCatalogue(rows,{query:'Lyon',format:'GTFS-RT'}).length,0);
@@ -26,7 +28,8 @@ test('search, format and RT filter and CSV escaping are deterministic',async()=>
  const escaped=catalogueCsv([{...rows[0],title:'Réseau "Spécial"'}]);
  assert.match(escaped,/"Réseau ""Spécial"""/);
 });
-test('untrusted URLs are suppressed and missing metadata does not invent realtime',async()=>{\n const {normalizeCatalogue}=await transport();
+test('untrusted URLs are suppressed and missing metadata does not invent realtime',async()=>{
+ const {normalizeCatalogue}=await transport();
  const rows=normalizeCatalogue([{title:'Test',resources:[{title:'Test',format:'GTFS',url:'javascript:alert(1)'}]}]);
  assert.equal(rows[0].resources[0].link,null);
  assert.equal(rows[0].hasRealtime,false);
