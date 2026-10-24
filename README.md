@@ -146,3 +146,7 @@ La navigation propose **France** (RTE/ODRE), **Europe** (historique annuel + pro
 ## Performances CI / GitHub Actions
 
 CI rapide sur PR (Chromium desktop et mobile), matrice complète avec tablette sur `main`, cache navigateur, mesures automatiques dans le résumé des jobs et surveillance de la révision Vercel exacte sans pause fixe de 85 s. [Mesures de référence et comparaisons](docs/CI_PERFORMANCE.md).
+
+## Météo immersive (lot 2)
+
+Nouvelle vue indépendante [Météo immersive](https://atlas-live-data-studio.vercel.app/#/weather/immersive) : cartes météo et design sombre responsive, 18 heures, 10 jours, lieux favoris, unités °C/°F, UV et soleil, AQI/pollen CAMS lorsque disponibles. La météo Atlas existante reste inchangée ; il ne s'agit pas d'un véritable radar de précipitations. [Détails de conception, API, provenance et tests](docs/WEATHER_IMMERSIVE.md).
