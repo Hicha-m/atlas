@@ -180,3 +180,6 @@
  .wi-header-actions{width:100%;justify-content:flex-end}
  .wi-city-quick{flex:1;max-width:none;white-space:nowrap}
 }
+
+/* Fixed column width keeps hourly SVG path and temperatures aligned at every breakpoint. */
+.wi-hour{width:85px;min-width:85px}
