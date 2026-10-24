@@ -405,6 +405,7 @@ async function loadHeatmap(force=false){
 }
 function exportData(format){if(!weather){status('Chargez des données avant de les exporter.',true);return;}let str,type,ext;if(format==='json'){str=JSON.stringify({city,downloaded_at:lastUpdate?.toISOString(),data:weather},null,2);type='application/json';ext='json';}else{const h=weather.hourly,keys=Object.keys(h).filter(k=>Array.isArray(h[k]));str=[keys.join(','),...h.time.map((_,i)=>keys.map(k=>h[k][i]??'').join(','))].join('\n');type='text/csv';ext='csv';}const blob=new Blob([str],{type:`${type};charset=utf-8`}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`atlas-meteo-${city.name.toLowerCase().replace(/[^a-z0-9]/g,'-')}.${ext}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
 function initSidebarDrawer(){
+ if(typeof document==='undefined')return;
  const toggle=$('#sidebar-toggle'),close=$('#sidebar-close'),backdrop=$('#sidebar-backdrop'),sidebar=$('#atlas-sidebar');
  if(!toggle||!close||!backdrop||!sidebar)return;
  const mq=window.matchMedia('(max-width: 900px)');
