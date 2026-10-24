@@ -6,7 +6,7 @@
   "scripts": {
     "test:e2e": "playwright test",
     "test:unit": "node --test tests/*.test.cjs",
-    "check": "node --check app.js && node --check electricity.js && node --check electricity-data.js && node --check electricity-world.js && node --check electricity-world-data.js && node --check electricity-europe-live-data.js && node --check api/europe-power.js",
+    "check": "node --check app.js && node --check electricity.js && node --check electricity-data.js && node --check electricity-world.js && node --check electricity-world-data.js && node --check electricity-europe-live-data.js && node --check api/europe-power.js && node --check api/deployment-revision.js && node --check scripts/wait-for-deployment.mjs",
     "test:live": "playwright test -c playwright.production.config.cjs",
     "test:visual": "playwright test -c playwright.visual.config.cjs",
     "test:visual:update": "playwright test -c playwright.visual.config.cjs --update-snapshots"
