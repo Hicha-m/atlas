@@ -95,7 +95,7 @@ test('heat opacity exposes real OSM basemap and remains seamless on zoom without
  await page.goto('/#/weather/heatmap');
  await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
  const slider=page.locator('#heat-opacity');
- await expect(slider).toHaveValue('72');
+ await expect(slider).toHaveValue('70');
  await expect(page.locator('.leaflet-tile-pane .atlas-heat-tile').first()).toBeVisible();
  await slider.evaluate(el=>{el.value='50';el.dispatchEvent(new Event('input',{bubbles:true}));});
  await expect(page.locator('#heat-opacity-value')).toHaveText('50 %');
