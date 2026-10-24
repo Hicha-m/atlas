@@ -161,6 +161,7 @@ export function mountImmersive(root){
    '<div class="wi-bottom-line"><span id="wi-status" role="status" aria-live="polite">'+(state.error?'Anciennes prévisions affichées ; erreur de rafraîchissement.':'Données Open-Meteo, fuseau '+esc(forecast.timezone||'local'))+'</span>'+
    '<span>Actualisation manuelle · Pas de géolocalisation automatique</span></div>';
   el('#wi-location-trigger').onclick=()=>openDialog('places');
+  el('#wi-favorite').onclick=toggleFavorite;
   el('#wi-settings-trigger').onclick=()=>openDialog('settings');
   el('#wi-hero-settings').onclick=()=>openDialog('settings');
   root.querySelectorAll('[data-day]').forEach(button=>button.addEventListener('click',()=>{
