@@ -23,6 +23,7 @@ test('weather code handles night, rain and missing code correctly',async()=>{
  const {condition}=await mod;
  assert.equal(condition(0,0).icon,'🌙');
  assert.equal(condition(61).tone,'rain');
+ assert.equal(condition(3,1).icon,'☁️');
  assert.equal(condition(null).label,'Conditions indisponibles');
 });
 test('hour and day collections retain source timestamps and missing values',async()=>{
