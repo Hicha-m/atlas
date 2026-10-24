@@ -174,5 +174,5 @@ nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-spa
 .heat-map-controls output{margin-left:6px;color:#58a6ff;font-variant-numeric:tabular-nums}
 .heat-map-controls input[type=range]{flex:1 1 150px;max-width:300px;accent-color:#58a6ff;cursor:pointer}
 .heat-map-control-hint{color:#9198a1;font-size:11px}
-.leaflet-container .atlas-heat-tile{max-width:none!important;max-height:none!important;pointer-events:none}
+.leaflet-container .atlas-heat-tile{width:258px!important;height:258px!important;max-width:none!important;max-height:none!important;pointer-events:none}
 @media(max-width:680px){.heat-map-controls input[type=range]{flex-basis:100%;max-width:none}.heat-map-controls{gap:9px}}
