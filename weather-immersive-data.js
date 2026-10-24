@@ -39,7 +39,7 @@ export function airUrl(location){
 export function condition(code,isDay=1){
  if(code==null||!Number.isFinite(Number(code)))return {icon:'🌡️',label:'Conditions indisponibles',tone:'neutral'};
  if(code===0)return {icon:isDay?'☀️':'🌙',label:'Ciel dégagé',tone:'clear'};
- if(code<=3)return {icon:isDay?'🌤️':'☁️',label:code===3?'Couvert':'Partiellement nuageux',tone:'cloud'};
+ if(code<=3)return {icon:code===3?'☁️':isDay?'🌤️':'☁️',label:code===3?'Couvert':'Partiellement nuageux',tone:'cloud'};
  if(code<=48)return {icon:'🌫️',label:'Brouillard',tone:'cloud'};
  if(code<=57)return {icon:'🌦️',label:'Bruine',tone:'rain'};
  if(code<=67)return {icon:'🌧️',label:'Pluie',tone:'rain'};
