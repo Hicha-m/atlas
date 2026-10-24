@@ -37,6 +37,8 @@ async function pageHasNoOverflow(page) {
 test('electricity overview renders RTE data, units and historical chart',async({page},info)=>{
   await mockRte(page);
   await page.goto('/#/electricity');
+  await expect(page.getByRole('heading',{name:'Explorer l’électricité'})).toBeVisible();
+  await page.locator('.module-choice[href="#/electricity/overview"]').click();
   await expect(page.getByRole('heading',{name:/Électricité/})).toBeVisible();
   expect(await page.locator('nav.elec-tabs').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
   await expect(page.locator('.elec-kpi')).toHaveCount(4);

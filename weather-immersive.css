@@ -127,3 +127,59 @@
 .wi-hero{min-height:320px;padding:22px 19px 20px;border-radius:24px}.wi-hero-top{flex-direction:column;gap:9px}.wi-section-name{font-size:9px}.wi-location-trigger{font-size:29px}.wi-region{margin:5px 0 0}.wi-live-label{margin:0;font-size:10px}.wi-hero-main{min-height:158px;padding:2px 0}.wi-current-temp{font-size:clamp(95px,20vw,130px);letter-spacing:-8px}.wi-hero-main h2{font-size:23px}.wi-feels{font-size:12px}.wi-weather-art{height:135px;width:36%}.wi-weather-symbol{font-size:83px}.wi-halo{width:120px;height:120px}.wi-hero-bottom{flex-direction:column;gap:11px;padding-top:13px;font-size:11px}.wi-main-grid{gap:12px}.wi-surface{border-radius:21px;padding:19px 16px}.wi-panel-heading{margin-bottom:18px}.wi-panel-heading h2{font-size:17px}.wi-panel-extra{font-size:10px}.wi-hour{width:74px;min-width:74px}.wi-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wi-metric{min-height:142px;padding:16px}.wi-metric-value{font-size:25px}.wi-day{grid-template-columns:minmax(65px,1fr) 26px 40px 28px minmax(30px,.8fr) 28px;gap:4px;padding:9px 2px}.wi-day-label{font-size:12px}.wi-day-rain{font-size:10px}.wi-day-low,.wi-day-high{font-size:12px}.wi-day-weather{font-size:18px}.wi-day-detail{flex-direction:column}.wi-mini-map{height:230px}.wi-map-bottom{font-size:11px}.wi-bottom-line{flex-direction:column;gap:6px}.wi-dialog{padding:26px 22px}}
 @media(max-width:390px){.wi-hero-main{gap:1px}.wi-current-temp{font-size:90px}.wi-weather-symbol{font-size:73px}.wi-day{grid-template-columns:minmax(60px,1fr) 24px 37px 27px minmax(20px,.7fr) 27px;gap:3px}.wi-day-rain{font-size:9px}.wi-day-label{font-size:11px}.wi-panel-extra{display:none}.wi-footer{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.wi-page *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+
+/* Simplified weather information architecture, with navigation handled by Atlas sidebar. */
+.wi-header-actions{min-width:0}
+.wi-city-quick,.wi-city-change{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #649cb7;border-radius:11px;background:#223b50;color:#eef8ff;font-size:12px;font-weight:720;min-height:41px;padding:9px 14px;white-space:nowrap}
+.wi-city-quick:hover,.wi-city-change:hover{background:#31536c;border-color:#90d1ff}
+.wi-city-quick:focus-visible,.wi-city-change:focus-visible{outline:2px solid #9bddff;outline-offset:3px}
+.wi-city-change{font-size:11px;min-height:32px;padding:6px 10px;border-radius:9px;background:#ffffff12}
+.wi-place-heading{flex-wrap:wrap}
+.wi-location-trigger{border-bottom:1px dashed #a1d9ec;padding-bottom:5px}
+.wi-panel-heading{align-items:flex-start}
+.wi-panel-help{margin:7px 0 0;font-size:12px;color:#9eabba;line-height:1.6}
+.wi-hour-card,.wi-day-card,.wi-details,.wi-map-card{grid-column:1/-1}
+.wi-details{background:#171b21;border:1px solid #30363f;border-radius:24px;padding:26px}
+.wi-details>.wi-panel-heading{margin:0 0 21px}
+.wi-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.wi-hours{position:relative}
+.wi-hour{position:relative}
+.wi-hour-spark{height:54px;width:100%;display:block}
+.wi-hour-spark:before,.wi-hour-spark i{display:none}
+.wi-hour-graph{position:absolute;top:118px;left:0;width:100%;height:54px;overflow:visible;pointer-events:none}
+.wi-hour-graph path{fill:none;stroke:#ffd17d;stroke-width:3;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.wi-hour-graph circle{fill:#fff3dc;stroke:#e6b569;stroke-width:2;vector-effect:non-scaling-stroke}
+.wi-hour-unavailable{position:absolute;top:130px;left:0;color:#a5b1bf;font-size:12px}
+@media(max-width:900px){
+ .wi-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wi-details{padding:22px}
+}
+@media(max-width:670px){
+ .wi-city-quick{font-size:11px;min-height:38px;padding:7px 10px}
+ .wi-city-quick span{display:inline}
+ .wi-brand h1{font-size:17px}
+ .wi-brand-icon{display:none}
+ .wi-toolbar{align-items:center}
+ .wi-hero-top{gap:14px}
+ .wi-location-trigger{font-size:27px}
+ .wi-details{border-radius:21px;padding:19px 16px}
+ .wi-panel-heading{flex-wrap:wrap}
+}
+@media(max-width:390px){
+ .wi-header-actions{gap:4px}
+ .wi-city-quick{padding:7px 7px;white-space:normal;text-align:center;max-width:115px}
+ .wi-brand h1{font-size:16px}
+ .wi-hour-graph{top:118px}
+}
+
+
+/* At 360–390px the city action gets its own row instead of squeezing controls. */
+@media(max-width:390px){
+ .wi-toolbar{flex-wrap:wrap;gap:10px}
+ .wi-header-actions{width:100%;justify-content:flex-end}
+ .wi-city-quick{flex:1;max-width:none;white-space:nowrap}
+}
+
+/* Fixed column width keeps hourly SVG path and temperatures aligned at every breakpoint. */
+.wi-hour{width:85px;min-width:85px}

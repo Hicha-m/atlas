@@ -31,7 +31,38 @@ function rememberWeatherLocation(){document.cookie='atlas_weather_location='+enc
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
 let electricityDispose=null, immersiveDispose=null;
-function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||!location.hash?'active':''}" href="#/"><span class="sym">▦</span> Vue d'ensemble</a>`+modules.map(m=>`<a class="nav-link ${(location.hash==='#/'+m[0]||location.hash.startsWith('#/'+m[0]+'/'))?'active':''}" href="#/${m[0]}"><span class="sym">${m[3]}</span> ${m[1]} ${['weather','electricity'].includes(m[0])?'<small>●</small>':''}</a>`+(m[0]==='weather'?'<div class="atlas-region-links"><a href="#/weather/overview">☁️ Météo Atlas</a><a href="#/weather/immersive">✨ Météo immersive · Nouveau</a></div>':'')+(m[0]==='electricity'?'<div class="atlas-region-links"><a href="#/electricity/overview">🇫🇷 France · récent</a><a href="#/electricity/europe">🇪🇺 Europe · actuel + historique</a><a href="#/electricity/world">🌍 Monde · historique</a></div>':'')).join(''); }
+function nav(){
+ const path=location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
+ const root=path[0]||'',section=path[1]||'';
+ const active=(target)=>root===target?' active':'';
+ const regionLink=(url,label,selected)=>'<a href="'+url+'"'+(selected?' class="active" aria-current="page"':'')+'>'+label+'</a>';
+ $('#nav').innerHTML='<a class="nav-link '+(!root?'active':'')+'" href="#/"'+(!root?' aria-current="page"':'')+'><span class="sym">▦</span> Vue d’ensemble</a>'+
+ modules.map(m=>{
+  const name=m[0];
+  const item='<a class="nav-link'+active(name)+'" href="#/'+name+'"'+(root===name&&!section?' aria-current="page"':'')+'><span class="sym">'+m[3]+'</span> '+m[1]+(['weather','electricity'].includes(name)?'<small>●</small>':'')+'</a>';
+  if(name==='weather')return item+'<div class="atlas-region-links">'+
+    regionLink('#/weather/overview','☁️ Météo Atlas',root==='weather'&&['overview','map','heatmap','data'].includes(section))+
+    regionLink('#/weather/immersive','✨ Météo immersive',root==='weather'&&section==='immersive')+'</div>';
+  if(name==='electricity')return item+'<div class="atlas-region-links">'+
+    regionLink('#/electricity/overview','🇫🇷 France',root==='electricity'&&['overview','mix','history','data'].includes(section))+
+    regionLink('#/electricity/europe','🇪🇺 Europe',root==='electricity'&&section==='europe')+
+    regionLink('#/electricity/world','🌍 Monde',root==='electricity'&&section==='world')+'</div>';
+  return item;
+ }).join('');
+}
+function moduleChooser(type){
+ const weather=type==='weather';
+ const items=weather?[
+  {href:'#/weather/overview',icon:'☁️',title:'Météo Atlas',detail:'Tableau de bord historique, carte interactive, carte des températures et données horaires.'},
+  {href:'#/weather/immersive',icon:'✨',title:'Météo immersive',detail:'Vue détaillée avec prévisions horaires, courbe des températures, dix jours, qualité de l’air et favoris.'}
+ ]:[
+  {href:'#/electricity/overview',icon:'🇫🇷',title:'France',detail:'Consommation, production nationale, mix et historique via RTE éCO₂mix.'},
+  {href:'#/electricity/europe',icon:'🇪🇺',title:'Europe',detail:'Données européennes récentes et historiques, selon la disponibilité des sources.'},
+  {href:'#/electricity/world',icon:'🌍',title:'Monde',detail:'Production électrique annuelle par pays et comparaisons historiques.'}
+ ];
+ $('#app').innerHTML='<section class="module-chooser"><p class="eyebrow">ATLAS LIVE / '+(weather?'MÉTÉO MONDIALE':'ÉLECTRICITÉ')+'</p><h1>'+ (weather?'Choisir votre météo':'Explorer l’électricité')+'</h1><p class="lead">Choisissez une vue ci-dessous ou utilisez le menu latéral. Vous pouvez revenir ici à tout moment.</p>'+
+ '<div class="module-choice-grid">'+items.map(item=>'<a class="module-choice" href="'+item.href+'"><span class="module-choice-icon" aria-hidden="true">'+item.icon+'</span><h2>'+item.title+'</h2><p>'+item.detail+'</p><span class="module-choice-arrow">Ouvrir la vue →</span></a>').join('')+'</div></section>';
+}
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(immersiveDispose){immersiveDispose();immersiveDispose=null;}
@@ -42,7 +73,7 @@ function render(){
  const root=id.split('/')[0]||'';
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
- if(!root)home();else if(root==='weather'&&id.split('/')[1]==='immersive'){
+ if(!root)home();else if(root==='weather'&&id.split('/')[1]==null){moduleChooser('weather');}else if(root==='electricity'&&id.split('/')[1]==null){moduleChooser('electricity');}else if(root==='weather'&&id.split('/')[1]==='immersive'){
    currentWeatherPage='immersive';
    $('#app').innerHTML='<div class="panel" role="status">Chargement de Météo immersive…</div>';
    import('./weather-immersive.js').then(module=>{
@@ -74,7 +105,7 @@ function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.t
 function placeholder(m){if(!m){home();return;}$('#app').innerHTML=`<a class="back" href="#/">← Tous les modules</a><div class="eyebrow">MODULE EN PRÉPARATION</div><h1>${m[3]} ${m[1]}</h1><p class="lead">${m[2]}</p><div class="empty"><h2>Ce module sera développé prochainement.</h2><p>Fournisseur prévu : ${safe(m[4])}. Il sera intégré à la même architecture que le module Météo, avec des outils adaptés à ces données.</p><a class="btn" href="#/">Revenir au catalogue →</a></div>`;}
 function weatherView(){
  const p=currentWeatherPage;
- const tabs=[['overview','◫','Vue d’ensemble'],['map','◉','Carte interactive'],['heatmap','◈','Carte des chaleurs'],['data','▤','Données horaires'],['immersive','✦','Météo immersive']];
+ const tabs=[['overview','◫','Vue d’ensemble'],['map','◉','Carte interactive'],['heatmap','◈','Carte des chaleurs'],['data','▤','Données horaires']];
  $('#app').innerHTML=`<div class="repo-heading"><div class="repo-title"><span class="repo-icon">☁</span><div><div class="repo-eyebrow">Atlas Live / Module 01</div><h1>Météo mondiale <span class="state-pill">Actif</span></h1><p>Prévisions ouvertes, cartes interactives et données exportables.</p></div></div><div class="actions"><button class="btn" id="exportjson">↓ JSON</button><button class="btn" id="exportcsv">↓ CSV</button><button class="btn" id="refresh">↻ Actualiser</button></div></div>
  <nav class="weather-tabs" aria-label="Vues du module météo">${tabs.map(([key,icon,label])=>`<a href="#/weather/${key}" class="weather-tab ${p===key?'selected':''}" ${p===key?'aria-current="page"':''}><span class="tab-icon">${icon}</span>${label}</a>`).join('')}</nav>
  <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Chercher ou choisir une ville" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /><div id="city-suggestions" class="city-suggestions" role="listbox" hidden></div></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
@@ -373,5 +404,51 @@ async function loadHeatmap(force=false){
  }
 }
 function exportData(format){if(!weather){status('Chargez des données avant de les exporter.',true);return;}let str,type,ext;if(format==='json'){str=JSON.stringify({city,downloaded_at:lastUpdate?.toISOString(),data:weather},null,2);type='application/json';ext='json';}else{const h=weather.hourly,keys=Object.keys(h).filter(k=>Array.isArray(h[k]));str=[keys.join(','),...h.time.map((_,i)=>keys.map(k=>h[k][i]??'').join(','))].join('\n');type='text/csv';ext='csv';}const blob=new Blob([str],{type:`${type};charset=utf-8`}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`atlas-meteo-${city.name.toLowerCase().replace(/[^a-z0-9]/g,'-')}.${ext}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
+function initSidebarDrawer(){
+ if(typeof document==='undefined')return;
+ const toggle=$('#sidebar-toggle'),close=$('#sidebar-close'),backdrop=$('#sidebar-backdrop'),sidebar=$('#atlas-sidebar');
+ if(!toggle||!close||!backdrop||!sidebar)return;
+ const mq=window.matchMedia('(max-width: 900px)');
+ const open=()=>document.body.classList.contains('atlas-sidebar-open');
+ const setOpen=value=>{
+  document.body.classList.toggle('atlas-sidebar-open',value);
+  toggle.setAttribute('aria-expanded',String(value));
+  toggle.setAttribute('aria-label',value?'Fermer le menu de navigation':'Ouvrir le menu de navigation');
+  backdrop.setAttribute('aria-hidden',String(!value));
+  sidebar.inert=mq.matches&&!value;
+  sidebar.setAttribute('aria-hidden',String(mq.matches&&!value));
+  if(value)close.focus();else if(mq.matches)toggle.focus();
+ };
+ toggle.addEventListener('click',()=>setOpen(!open()));
+ close.addEventListener('click',()=>setOpen(false));
+ backdrop.addEventListener('click',()=>setOpen(false));
+ sidebar.addEventListener('click',event=>{if(event.target.closest('a'))setOpen(false);});
+ window.addEventListener('hashchange',()=>{if(open())setOpen(false);});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&open())setOpen(false);});
+ const onViewportChange=()=>{
+  if(open())setOpen(false);
+  sidebar.inert=mq.matches&&!open();
+  sidebar.setAttribute('aria-hidden',String(mq.matches&&!open()));
+ };
+ if(mq.addEventListener)mq.addEventListener('change',onViewportChange);
+ sidebar.inert=mq.matches;
+ sidebar.setAttribute('aria-hidden',String(mq.matches));
+ let start=null;
+ document.addEventListener('touchstart',event=>{
+  if(!mq.matches||event.touches.length!==1)return;
+  const x=event.touches[0].clientX,y=event.touches[0].clientY;
+  // Open with a leftward swipe starting at the right edge, or a rightward
+  // gesture from the left edge. Avoid swiping the hourly weather rail.
+  if(open()||x<=28||x>=window.innerWidth-36)start={x,y};else start=null;
+ },{passive:true});
+ document.addEventListener('touchend',event=>{
+  if(!start||!mq.matches||!event.changedTouches.length)return;
+  const dx=event.changedTouches[0].clientX-start.x,dy=event.changedTouches[0].clientY-start.y;
+  const from=start;start=null;
+  if(Math.abs(dx)<75||Math.abs(dx)<Math.abs(dy)*1.35)return;
+  if(open()&&dx<0)setOpen(false);
+  else if(!open()&&((from.x>=window.innerWidth-36&&dx<0)||(from.x<=28&&dx>0)))setOpen(true);
+ },{passive:true});
+}
 if(typeof document!=='undefined'){const saved=savedWeatherLocation();if(saved)city=saved;const search=$('#global-search');if(search){search.addEventListener('input',e=>{if(location.hash!=='#/'&&location.hash!==''){location.hash='#/';setTimeout(()=>{$('#filter').value=e.target.value;catalog(e.target.value);},0);}else{const filter=$('#filter');if(filter){filter.value=e.target.value;catalog(e.target.value);}}});}}
-window.addEventListener('hashchange',render);$('#clock').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});render();
+initSidebarDrawer();window.addEventListener('hashchange',render);$('#clock').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});render();
