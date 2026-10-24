@@ -35,15 +35,28 @@ function iconTile(icon,label,value,sub,extra=''){
 function renderHours(hours,unit){
  if(!hours.length)return '<p class="wi-empty">Prévisions horaires indisponibles.</p>';
  const vals=hours.map(h=>numeric(h.temperature)).filter(v=>v!==null);
- const min=Math.min(...vals),max=Math.max(...vals),span=Math.max(3,max-min);
+ const min=vals.length?Math.min(...vals):0,max=vals.length?Math.max(...vals):0;
+ const span=Math.max(3,max-min);
+ const y=value=>Number((44-(value-min)/span*34).toFixed(2));
+ // Draw a connected SVG line only across consecutive valid provider values.
+ // Missing observations must not be presented as real temperatures.
+ let path='',previousValid=false;
+ hours.forEach((h,i)=>{
+  const value=numeric(h.temperature);
+  if(value===null){previousValid=false;return;}
+  path+=(previousValid?' L ':' M ')+((i+.5)*100)+' '+y(value);
+  previousValid=true;
+ });
+ const nodes=hours.map((h,i)=>numeric(h.temperature)===null?'':'<circle cx="'+((i+.5)*100)+'" cy="'+y(h.temperature)+'" r="4.4"/>').join('');
+ const graph=vals.length?'<svg class="wi-hour-graph" viewBox="0 0 '+(hours.length*100)+' 54" preserveAspectRatio="none" role="img" aria-label="Courbe continue des températures horaires, en '+(unit==='f'?'degrés Fahrenheit':'degrés Celsius')+'"><path d="'+path.trim()+'"/>'+nodes+'</svg>':
+  '<span class="wi-hour-unavailable">Températures indisponibles</span>';
  return '<div class="wi-hour-scroll"><div class="wi-hours" role="list" aria-label="Prévisions pour les prochaines heures">'+hours.map((h,i)=>{
   const state=condition(h.code,h.isDay);
-  const y=50-(getNumber(h.temperature,min)-min)/span*28;
   return '<div role="listitem" class="wi-hour"><span class="wi-hour-label">'+(i===0?'Maintenant':hourLabel(h.time))+'</span>'+
    '<span class="wi-hour-icon" aria-label="'+esc(state.label)+'">'+state.icon+'</span>'+
-   '<strong>'+temp(h.temperature,unit)+'</strong><span class="wi-hour-spark" style="--height:'+y.toFixed(1)+'px"><i></i></span>'+
+   '<strong>'+temp(h.temperature,unit)+'</strong><span class="wi-hour-spark" aria-hidden="true"></span>'+
    '<span class="wi-hour-rain"><span aria-hidden="true">💧</span> '+labelPct(h.rain)+'</span></div>';
- }).join('')+'</div></div>';
+ }).join('')+graph+'</div></div>';
 }
 function renderDays(days,unit,selected){
  if(!days.length)return '<p class="wi-empty">Prévisions quotidiennes indisponibles.</p>';
@@ -95,7 +108,7 @@ export function mountImmersive(root){
  const alive=()=>!state.disposed&&root.isConnected;
  const rootHtml=()=>'<div class="wi-page">'+
   '<header class="wi-toolbar"><div class="wi-brand"><span class="wi-brand-icon">◈</span><div><span class="wi-overline">ATLAS LIVE / MÉTÉO</span><h1>Météo immersive</h1></div></div>'+
-  '<div class="wi-header-actions"><a href="#/weather/overview" class="wi-top-link">↗ Vue Atlas</a>'+
+  '<div class="wi-header-actions"><button id="wi-city-quick" type="button" class="wi-city-quick" aria-label="Choisir ou changer de ville">⌖ <span>Changer de ville</span></button>'+
   '<button id="wi-refresh" type="button" class="wi-icon-button" title="Actualiser les prévisions" aria-label="Actualiser les prévisions">↻</button>'+
   '<button id="wi-settings-trigger" type="button" class="wi-icon-button" title="Paramètres météo" aria-label="Paramètres météo">⚙</button></div></header>'+
   '<div id="wi-body" aria-live="off"></div><div id="wi-dialog-portal"></div>'+
@@ -131,20 +144,20 @@ export function mountImmersive(root){
   const icon=nowCondition.icon;
   const updated=state.updated?new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'}).format(state.updated):'—';
   const AQI=state.airLoading?'Chargement…':airValue==null?'—':String(Math.round(airValue));
-  panel.innerHTML='<div class="wi-section-switch"><a href="#/weather/overview">Météo Atlas</a><a href="#/weather/immersive" aria-current="page" class="active">Météo immersive <span>Nouveau</span></a></div>'+
-   '<section class="wi-hero wi-tone-'+nowCondition.tone+'"><div class="wi-hero-top"><div><span class="wi-section-name">LES CONDITIONS ACTUELLES</span><div class="wi-place-heading"><button id="wi-location-trigger" class="wi-location-trigger" type="button" aria-label="Choisir une ville">'+esc(city.name)+' <span aria-hidden="true">⌄</span></button>'+
+  panel.innerHTML=
+   '<section class="wi-hero wi-tone-'+nowCondition.tone+'"><div class="wi-hero-top"><div><span class="wi-section-name">LES CONDITIONS ACTUELLES</span><div class="wi-place-heading"><button id="wi-location-trigger" class="wi-location-trigger" type="button" aria-label="Changer de ville, ville actuelle : '+esc(city.name)+'">⌖ '+esc(city.name)+' <span aria-hidden="true">⌄</span></button><button class="wi-city-change" id="wi-city-change" type="button">Changer de ville →</button>'+
    favoriteButton(city,state.favorites)+'</div><p class="wi-region">'+esc(city.country)+' · '+decimal(city.latitude,3)+'°, '+decimal(city.longitude,3)+'°</p></div><div class="wi-live-label"><span class="wi-live-dot"></span> Prévisions actualisées à '+esc(updated)+'</div></div>'+
    '<div class="wi-hero-main"><div><div class="wi-current-temp">'+temp(current.temperature_2m,unit)+'</div>'+
    '<h2>'+esc(nowCondition.label)+'</h2><p class="wi-feels">Ressenti '+temp(current.apparent_temperature,unit)+' <span aria-hidden="true">·</span> Max. '+temp(today.high,unit)+' / Min. '+temp(today.low,unit)+'</p></div>'+
    '<div class="wi-weather-art" aria-hidden="true"><span class="wi-halo"></span><span class="wi-weather-symbol">'+icon+'</span></div></div>'+
    '<div class="wi-hero-bottom"><span>✦ '+esc(insight(forecast))+'</span><button type="button" id="wi-hero-settings">⚙ Personnaliser</button></div></section>'+
-   '<div class="wi-main-grid"><section class="wi-surface wi-hour-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">PROCHAINES HEURES</span><h2>Prévisions horaires</h2></div><span class="wi-panel-extra">18 prochaines heures →</span></div>'+
+   '<div class="wi-main-grid"><section class="wi-surface wi-hour-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">01 / ÉVOLUTION</span><h2>Température heure par heure</h2><p class="wi-panel-help">La ligne relie les températures prévues. Défilez horizontalement pour les 18 prochaines heures.</p></div><span class="wi-panel-extra">18 prochaines heures →</span></div>'+
    renderHours(nextHours(forecast,18),unit)+'</section>'+
-   '<section class="wi-surface wi-day-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">VOIR PLUS LOIN</span><h2>Prévisions sur 10 jours</h2></div><span class="wi-panel-extra">Min. — max.</span></div>'+
+   '<section class="wi-surface wi-day-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">02 / ANTICIPER</span><h2>Prévisions sur 10 jours</h2><p class="wi-panel-help">Choisissez un jour pour afficher les détails de ses prévisions.</p></div><span class="wi-panel-extra">Min. — max.</span></div>'+
    renderDays(days,unit,state.selectedDay)+
    '<div class="wi-day-detail" id="wi-day-detail"><div><span>'+esc(weekdayLong(selected.date))+' '+esc(compactDate(selected.date))+'</span><strong>'+esc(condition(selected.code).label)+'</strong></div>'+
    '<div>💧 '+labelPct(selected.rain)+' · '+(numeric(selected.amount)===null?'Précipitations indisponibles':decimal(selected.amount,1)+' mm')+'</div></div></section>'+
-   '<section class="wi-details"><div class="wi-panel-heading"><div><span class="wi-eyebrow">EN DÉTAIL</span><h2>Votre météo en un regard</h2></div></div>'+
+   '<section class="wi-details"><div class="wi-panel-heading"><div><span class="wi-eyebrow">03 / CONDITIONS</span><h2>Les indicateurs du jour</h2></div></div>'+
    '<div class="wi-metrics">'+
    iconTile('💨','Vent',numeric(current.wind_speed_10m)==null?'—':decimal(current.wind_speed_10m)+' km/h','Vitesse actuelle')+
    iconTile('💧','Humidité',numeric(current.relative_humidity_2m)==null?'—':decimal(current.relative_humidity_2m)+' %','Humidité relative')+
@@ -155,12 +168,13 @@ export function mountImmersive(root){
    iconTile('🌬️','Qualité de l’air',AQI,state.airLoading?'Chargement…':state.airError?'Service indisponible':aqi.label+' · AQI européen')+
    iconTile('🌿','Pollens',state.airLoading?'…':pollenStatus(air),'Maximum parmi les pollens disponibles · CAMS')+
    '</div></section>'+
-   '<section class="wi-surface wi-map-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">EXPLORER AUTOUR DE VOUS</span><h2>Cartes et températures</h2></div><a href="#/weather/heatmap" class="wi-map-link">Ouvrir la carte →</a></div>'+
+   '<section class="wi-surface wi-map-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">04 / CARTE</span><h2>Explorer la région</h2></div><a href="#/weather/heatmap" class="wi-map-link">Carte thermique →</a></div>'+
    '<div class="wi-mini-map" id="wi-mini-map" aria-label="Carte OpenStreetMap autour de '+esc(city.name)+'"><div class="wi-map-fallback">Carte géographique en chargement…</div></div>'+
    '<div class="wi-map-bottom"><span>⌖ '+esc(city.name)+' · Carte géographique, pas un radar de pluie</span><a href="#/weather/map">Carte interactive ↗</a></div></section></div>'+
    '<div class="wi-bottom-line"><span id="wi-status" role="status" aria-live="polite">'+(state.error?'Anciennes prévisions affichées ; erreur de rafraîchissement.':'Données Open-Meteo, fuseau '+esc(forecast.timezone||'local'))+'</span>'+
    '<span>Actualisation manuelle · Pas de géolocalisation automatique</span></div>';
   el('#wi-location-trigger').onclick=()=>openDialog('places');
+  el('#wi-city-change').onclick=()=>openDialog('places');
   el('#wi-favorite').onclick=toggleFavorite;
   el('#wi-settings-trigger').onclick=()=>openDialog('settings');
   el('#wi-hero-settings').onclick=()=>openDialog('settings');
@@ -350,6 +364,7 @@ export function mountImmersive(root){
  const handleKey=e=>{if(e.key==='Escape'&&state.dialog)closeDialog();};
  root.addEventListener('keydown',handleKey);
  el('#wi-refresh').onclick=()=>loadForecast(true);
+ el('#wi-city-quick').onclick=()=>openDialog('places');
  el('#wi-settings-trigger').onclick=()=>openDialog('settings');
  loadForecast();
  // Root may be detached by the client-side router; callers always invoke dispose on route exit.
