@@ -99,13 +99,13 @@ test('click is immediate when allowed, otherwise declines without queueing or re
  await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
  expect(batches).toHaveLength(1);
  const map=page.locator('#weather-map');
- await map.click({position:{x:340,y:210}});
- await expect(page.locator('#status')).toContainText('limitation des appels');
+ await map.click({position:{x:100,y:170}});
+ await expect(page.locator('#status')).toContainText('limite des appels');
  expect(batches).toHaveLength(1);
  await page.clock.fastForward(22000);
  await expect(page.locator('#status')).toContainText('aucune actualisation automatique');
  expect(batches).toHaveLength(1);
- await map.click({position:{x:390,y:270}});
+ await map.click({position:{x:160,y:220}});
  await expect.poll(()=>batches.length).toBe(2);
  // Clicking selects the point, but retains the viewport sampling grid.
  expect(batches[1]).toBe(batches[0]);
