@@ -176,3 +176,20 @@ nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-spa
 .heat-map-control-hint{color:#9198a1;font-size:11px}
 .leaflet-container .atlas-heat-tile{width:258px!important;height:258px!important;max-width:none!important;max-height:none!important;pointer-events:none}
 @media(max-width:680px){.heat-map-controls input[type=range]{flex-basis:100%;max-width:none}.heat-map-controls{gap:9px}}
+
+/* Keep labels registered with their exact position on the gradient, at every breakpoint. */
+.heat-legend{display:grid;grid-template-columns:auto minmax(230px,440px) auto minmax(0,1fr);column-gap:12px;row-gap:8px;align-items:start}
+.heat-legend-cold,.heat-legend-hot{padding-top:0}
+.heat-legend-track{min-width:0;width:100%}
+.heat-legend-track .heat-gradient{width:100%;height:12px;box-sizing:border-box}
+.heat-legend .heat-scale{height:21px;position:relative;width:100%;max-width:none;margin-top:7px;display:block;white-space:nowrap;flex-wrap:nowrap}
+.heat-legend .heat-scale span{position:absolute;top:0;width:max-content;font-size:11px;text-align:center}
+.heat-legend strong{justify-self:end;align-self:start;margin-left:0;white-space:nowrap}
+@media(max-width:980px){
+ .heat-legend{grid-template-columns:auto minmax(0,1fr) auto}
+ .heat-legend strong{grid-column:1/-1;justify-self:end;white-space:normal}
+}
+@media(max-width:480px){
+ .heat-legend{column-gap:7px}
+ .heat-legend .heat-scale span{font-size:9px}
+}

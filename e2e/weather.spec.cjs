@@ -86,7 +86,7 @@ test('heat layer stays continuous on pan and zoom, without Open-Meteo refetches'
  await expect(page.locator('#status')).toContainText('limite des appels');
  expect(gridCalls).toBe(1);
 });
-test('clicking a new point refreshes thermal samples after cooldown, unlike pan or zoom',async({page})=>{
+test('click is immediate when allowed, otherwise declines without queueing or recentering',async({page})=>{
  await page.clock.install({time:new Date('2026-10-24T12:00:00Z')});
  const batches=[];
  page.on('request',request=>{
@@ -98,19 +98,37 @@ test('clicking a new point refreshes thermal samples after cooldown, unlike pan 
  await page.goto('/#/weather/heatmap');
  await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
  expect(batches).toHaveLength(1);
- const map=page.locator('#weather-map'),rect=await map.boundingBox();
- await map.click({position:{x:rect.width*.73,y:rect.height*.65}});
- await expect(page.locator('#city')).toHaveValue('');
- await expect(page.locator('#status')).toContainText('nouveau point sélectionné');
- // The immediate click stays within the 20s quota window; no eager batch.
+ const map=page.locator('#weather-map');
+ await map.click({position:{x:100,y:170}});
+ await expect(page.locator('#status')).toContainText('limite des appels');
  expect(batches).toHaveLength(1);
  await page.clock.fastForward(22000);
- await expect.poll(()=>batches.length,{timeout:10000}).toBe(2);
- expect(batches[1]).not.toBe(batches[0]);
- await expect(page.locator('#heat-range')).toContainText('30 points');
+ await expect(page.locator('#status')).toContainText('aucune actualisation automatique');
+ expect(batches).toHaveLength(1);
+ await map.click({position:{x:160,y:220}});
+ await expect.poll(()=>batches.length).toBe(2);
+ // Clicking selects the point, but retains the viewport sampling grid.
+ expect(batches[1]).toBe(batches[0]);
  await page.locator('.leaflet-control-zoom-in').click();
  await page.locator('.leaflet-control-zoom-out').click();
  expect(batches).toHaveLength(2);
+});
+test('temperature labels share exact gradient positions at desktop and mobile widths',async({page})=>{
+ await page.goto('/#/weather/heatmap');
+ await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
+ for(const width of [390,1440]){
+  await page.setViewportSize({width,height:900});
+  const check=await page.evaluate(()=>{
+   const bar=document.querySelector('.heat-gradient').getBoundingClientRect();
+   return [...document.querySelectorAll('#heat-scale span')].map((node,i)=>{
+    const tick=node.getBoundingClientRect();
+    const marker=i===0?tick.left:i===5?tick.right:(tick.left+tick.right)/2;
+    return Math.abs(marker-(bar.left+bar.width*i/5));
+   });
+  });
+  expect(check).toHaveLength(6);
+  expect(Math.max(...check)).toBeLessThan(4);
+ }
 });
 test('heat opacity exposes real OSM basemap and remains seamless on zoom without a forecast grid refetch',async({page})=>{
  let gridCalls=0;
