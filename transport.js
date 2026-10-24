@@ -3,7 +3,7 @@
  * The national PAN catalogue is retrieved via Atlas same-origin proxy with CDN caching.
  */
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-export const FORMAT_TYPES=['GTFS','GTFS-RT','NeTEx','SIRI','GBFS','CSV','JSON'];
+export const FORMAT_TYPES=['GTFS','GTFS-RT','NETEX','SIRI','GBFS','CSV','JSON'];
 export function normalizeCatalogue(payload){
  const input=Array.isArray(payload)?payload:Array.isArray(payload?.datasets)?payload.datasets:[];
  return input.filter(x=>x&&typeof x==='object').map(item=>{
