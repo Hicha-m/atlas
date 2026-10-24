@@ -70,7 +70,6 @@ test('heat layer stays continuous on pan and zoom, without Open-Meteo refetches'
  await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
  expect(gridCalls).toBe(1);
  const map=page.locator('#weather-map');
- await map.click({position:{x:200,y:250}});
  await page.locator('.leaflet-control-zoom-in').click();
  await page.locator('.leaflet-control-zoom-out').click();
  const box=await map.boundingBox();
@@ -86,6 +85,32 @@ test('heat layer stays continuous on pan and zoom, without Open-Meteo refetches'
  await page.locator('#reload-heat').click();
  await expect(page.locator('#status')).toContainText('limite des appels');
  expect(gridCalls).toBe(1);
+});
+test('clicking a new point refreshes thermal samples after cooldown, unlike pan or zoom',async({page})=>{
+ await page.clock.install({time:new Date('2026-10-24T12:00:00Z')});
+ const batches=[];
+ page.on('request',request=>{
+  if(request.url().includes('api.open-meteo.com/v1/forecast')){
+   const url=new URL(request.url());
+   if(url.searchParams.get('latitude')?.includes(','))batches.push(url.searchParams.get('latitude'));
+  }
+ });
+ await page.goto('/#/weather/heatmap');
+ await expect(page.locator('#heat-range')).toContainText('30 points',{timeout:18000});
+ expect(batches).toHaveLength(1);
+ const map=page.locator('#weather-map'),rect=await map.boundingBox();
+ await map.click({position:{x:rect.width*.73,y:rect.height*.65}});
+ await expect(page.locator('#city')).toHaveValue('');
+ await expect(page.locator('#status')).toContainText('nouveau point sélectionné');
+ // The immediate click stays within the 20s quota window; no eager batch.
+ expect(batches).toHaveLength(1);
+ await page.clock.fastForward(22000);
+ await expect.poll(()=>batches.length,{timeout:10000}).toBe(2);
+ expect(batches[1]).not.toBe(batches[0]);
+ await expect(page.locator('#heat-range')).toContainText('30 points');
+ await page.locator('.leaflet-control-zoom-in').click();
+ await page.locator('.leaflet-control-zoom-out').click();
+ expect(batches).toHaveLength(2);
 });
 test('heat opacity exposes real OSM basemap and remains seamless on zoom without a forecast grid refetch',async({page})=>{
  let gridCalls=0;
