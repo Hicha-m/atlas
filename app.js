@@ -107,8 +107,8 @@ function initWeatherMap(){
    weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
    // A click attempts an immediate update for the current viewport; quota limits
    // can reject it without scheduling a future request. Pan/zoom never refresh.
-   if(currentWeatherPage==='heatmap')loadHeatmap(true);
    await loadWeather();
+   if(currentWeatherPage==='heatmap')loadHeatmap(true);
  });
  if(currentWeatherPage==='heatmap')ensureHeatCanvas();
  setTimeout(()=>weatherMap?.invalidateSize(),0);
@@ -321,7 +321,7 @@ async function loadHeatmap(force=false){
  }
  const remaining=Math.max(heatCooldownUntil,heatLastNetworkAt+HEAT_REQUEST_INTERVAL)-now;
  if(remaining>0){
-   status('Carte thermique : limitation des appels. Réessayez dans '+Math.ceil(remaining/1000)+' s ; aucune actualisation automatique.');
+   status('Carte thermique : limite des appels. Réessayez dans '+Math.ceil(remaining/1000)+' s ; aucune actualisation automatique.');
    return;
  }
  const request=++heatRequest,controller=new AbortController();
