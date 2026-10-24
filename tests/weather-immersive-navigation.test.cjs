@@ -9,8 +9,8 @@ const css = fs.readFileSync(path.join(__dirname, '..', 'weather-immersive.css'),
 test('weather view switch exists in the persistent shell, before async weather data', () => {
  const shell = source.slice(source.indexOf('const rootHtml='), source.indexOf('root.innerHTML=rootHtml()'));
  assert.match(shell, /<nav class="wi-section-switch" aria-label="Choisir une interface météo">/);
- assert.match(shell, /href="#\\/weather\\/overview"/);
- assert.match(shell, /href="#\\/weather\\/immersive"/);
+ assert.ok(shell.includes('href="#/weather/overview"'));
+ assert.ok(shell.includes('href="#/weather/immersive"'));
  assert.ok(shell.indexOf('wi-section-switch') < shell.indexOf('id="wi-body"'));
 });
 
