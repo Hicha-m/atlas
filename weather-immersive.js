@@ -98,6 +98,7 @@ export function mountImmersive(root){
   '<div class="wi-header-actions"><a href="#/weather/overview" class="wi-top-link">↗ Vue Atlas</a>'+
   '<button id="wi-refresh" type="button" class="wi-icon-button" title="Actualiser les prévisions" aria-label="Actualiser les prévisions">↻</button>'+
   '<button id="wi-settings-trigger" type="button" class="wi-icon-button" title="Paramètres météo" aria-label="Paramètres météo">⚙</button></div></header>'+
+  '<nav class="wi-section-switch" aria-label="Choisir une interface météo"><a href="#/weather/overview">Météo Atlas</a><a href="#/weather/immersive" aria-current="page" class="active">Météo immersive <span>Nouveau</span></a></nav>'+
   '<div id="wi-body" aria-live="off"></div><div id="wi-dialog-portal"></div>'+
   '<footer class="wi-footer">Prévisions : <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · Air et pollens : <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener noreferrer">Open-Meteo / CAMS</a> · Fond cartographique : <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>. Données modélisées, disponibilités variables. Aucun radar de pluie réel.</footer></div>';
  root.innerHTML=rootHtml();
@@ -131,7 +132,7 @@ export function mountImmersive(root){
   const icon=nowCondition.icon;
   const updated=state.updated?new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'}).format(state.updated):'—';
   const AQI=state.airLoading?'Chargement…':airValue==null?'—':String(Math.round(airValue));
-  panel.innerHTML='<div class="wi-section-switch"><a href="#/weather/overview">Météo Atlas</a><a href="#/weather/immersive" aria-current="page" class="active">Météo immersive <span>Nouveau</span></a></div>'+
+  panel.innerHTML=
    '<section class="wi-hero wi-tone-'+nowCondition.tone+'"><div class="wi-hero-top"><div><span class="wi-section-name">LES CONDITIONS ACTUELLES</span><div class="wi-place-heading"><button id="wi-location-trigger" class="wi-location-trigger" type="button" aria-label="Choisir une ville">'+esc(city.name)+' <span aria-hidden="true">⌄</span></button>'+
    favoriteButton(city,state.favorites)+'</div><p class="wi-region">'+esc(city.country)+' · '+decimal(city.latitude,3)+'°, '+decimal(city.longitude,3)+'°</p></div><div class="wi-live-label"><span class="wi-live-dot"></span> Prévisions actualisées à '+esc(updated)+'</div></div>'+
    '<div class="wi-hero-main"><div><div class="wi-current-temp">'+temp(current.temperature_2m,unit)+'</div>'+
