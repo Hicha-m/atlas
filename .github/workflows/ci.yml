@@ -68,14 +68,39 @@ jobs:
       - name: Install Chromium on cache miss
         if: steps.browser-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
-      - name: Browser tests
-        run: npm run test:e2e
-      - name: Compare Primer UI to approved pixel baselines
+      - name: Cache summary
         run: |
-          if find e2e/visual.spec.cjs-snapshots -name '*.png' -print -quit 2>/dev/null | grep -q .; then
-            npm run test:visual
+          echo '### Browser provisioning' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Chromium binary cache hit: ${{ steps.browser-cache.outputs.cache-hit }}' >> "$GITHUB_STEP_SUMMARY"
+      - name: Browser tests (PR desktop/mobile, main complete)
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            npm run test:e2e -- --project=desktop-chromium --project=mobile-chromium
+            scope="desktop + mobile (PR)"
           else
-            echo 'Reference screenshots not approved yet. Baseline review branch will be created after merge.'
+            npm run test:e2e
+            scope="desktop + tablet + mobile (main)"
+          fi
+          echo "### Functional Playwright" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Matrix: $scope" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Duration: $((SECONDS-start)) seconds" >> "$GITHUB_STEP_SUMMARY"
+      - name: Compare Primer UI to approved pixel baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          if find e2e/visual.spec.cjs-snapshots -name '*.png' -print -quit 2>/dev/null | grep -q .; then
+            if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+              npm run test:visual -- --project=desktop-chromium --project=mobile-chromium
+            else
+              npm run test:visual
+            fi
+            echo "- Pixel reference comparison: $((SECONDS-start)) seconds" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Pixel baselines pending approval" >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Upload visual evidence
         if: always()
@@ -87,4 +112,4 @@ jobs:
             playwright-visual-report/
             test-results/
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
