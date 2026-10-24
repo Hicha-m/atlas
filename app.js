@@ -35,7 +35,7 @@ function nav(){ $('#nav').innerHTML=`<a class="nav-link ${location.hash==='#/'||
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
- clearTimeout(heatRefreshTimer);clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
+ clearTimeout(heatRefreshTimer);heatRefreshTimer=null;clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
  heatController?.abort();heatController=null;heatBusy=false;heatRenderedKey=null;
  let id=decodeURIComponent(location.hash.startsWith('#/')?location.hash.slice(2):'');
  const root=id.split('/')[0]||'';
@@ -70,7 +70,7 @@ function weatherView(){
  <nav class="weather-tabs" aria-label="Vues du module météo">${tabs.map(([key,icon,label])=>`<a href="#/weather/${key}" class="weather-tab ${p===key?'selected':''}" ${p===key?'aria-current="page"':''}><span class="tab-icon">${icon}</span>${label}</a>`).join('')}</nav>
  <div class="panel controls-panel"><form id="searchform" class="controls"><div class="control city"><label for="city">Localisation</label><input id="city" class="field" placeholder="Chercher ou choisir une ville" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false" value="${city.name==='Point sélectionné'?'':safe(city.name)}" required /><div id="city-suggestions" class="city-suggestions" role="listbox" hidden></div></div><div class="control"><label for="days">Période</label><select id="days" class="field"><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">14 jours</option></select></div><div class="control"><button class="btn primary" type="submit">⌕ Rechercher</button></div><button type="button" class="btn reset-location" id="forget-location" title="Effacer le cookie de position">Oublier ma position</button></form><div class="message" id="status" role="status" aria-live="polite"></div></div>
  ${p==='overview'||p==='map'? `<section class="panel map-panel"><div class="map-heading"><div><h3>${p==='map'?'Explorer la carte':'Localiser un point'}</h3><p>Cliquez sur un lieu pour ses prévisions. Ctrl + molette pour zoomer.</p></div><div id="coordinates" class="coordinates"></div></div><div id="weather-map" class="${p==='map'?'map-full':''}" aria-label="Carte mondiale interactive"></div><div class="map-help">© OpenStreetMap contributors · La dernière position est retenue 180 jours dans un cookie fonctionnel.</div></section>`:''}
- ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div class="heat-map-controls" aria-label="Réglages de la carte thermique"><label for="heat-opacity">Intensité thermique <output id="heat-opacity-value" for="heat-opacity">70 %</output></label><input type="range" id="heat-opacity" min="35" max="95" step="5" value="70" aria-label="Opacité de la carte thermique"><span class="heat-map-control-hint">Le fond OpenStreetMap reste visible sous les températures.</span></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><div id="heat-scale" class="heat-scale" aria-label="Correspondance couleurs et températures">Échelle en chargement…</div><p class="map-help">Déplacez et zoomez librement, sans nouvel appel thermique. Seul « Actualiser la zone » récupère de nouvelles mesures. Hors de la zone échantillonnée, les couleurs sont prolongées à titre indicatif et ne représentent pas des relevés locaux.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
+ ${p==='heatmap'?`<section class="panel map-panel"><div class="map-heading"><div><h3>Carte des températures</h3><p>Couche de chaleur calculée à partir de points d'échantillonnage Open-Meteo, interpolation indicative (non satellitaire).</p></div><button id="reload-heat" class="btn">↻ Actualiser la zone</button></div><div class="heat-map-controls" aria-label="Réglages de la carte thermique"><label for="heat-opacity">Intensité thermique <output id="heat-opacity-value" for="heat-opacity">70 %</output></label><input type="range" id="heat-opacity" min="35" max="95" step="5" value="70" aria-label="Opacité de la carte thermique"><span class="heat-map-control-hint">Le fond OpenStreetMap reste visible sous les températures.</span></div><div id="weather-map" class="map-full" aria-label="Carte de chaleur des températures"></div><div class="heat-legend"><span>Froid</span><div class="heat-gradient" aria-label="Gradient de températures du froid au chaud"></div><span>Chaud</span><strong id="heat-range">Chargement…</strong></div><div id="heat-scale" class="heat-scale" aria-label="Correspondance couleurs et températures">Échelle en chargement…</div><p class="map-help">Déplacez et zoomez librement sans nouvel appel thermique. Cliquez sur un point pour actualiser sa zone (après le délai anti-quota), ou utilisez « Actualiser la zone ». Hors de la zone échantillonnée, les couleurs sont prolongées à titre indicatif et ne représentent pas des relevés locaux.</p><div id="coordinates" class="coordinates heat-coordinates"></div></section>`:''}
  <div id="result"></div>
  <div class="panel sources"><strong>Données & confidentialité</strong><p>Météo : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Carte : <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Un cookie strictement fonctionnel atlas_weather_location conserve uniquement votre dernière position sélectionnée. Le bouton « Oublier ma position » le supprime. Aucune géolocalisation automatique.</p></div>`;
  $('#searchform').addEventListener('submit',searchCity);
@@ -105,7 +105,9 @@ function initWeatherMap(){
    city={name:'Point sélectionné',country:'Coordonnées GPS',latitude:+latlng.lat.toFixed(5),longitude:+latlng.lng.toFixed(5)};
    $('#city').value=''; updateCoordinates();
    weatherMarker.setLatLng(latlng);rememberWeatherLocation();selectedForecastDay=null;
-   // Selecting a point changes only its local forecast, never the regional heat grid.
+   // A deliberate map click updates the selected forecast and re-centers the thermal samples.
+   // Pan and zoom never schedule a forecast-grid request.
+   if(currentWeatherPage==='heatmap')scheduleClickedHeatmap(latlng);
    await loadWeather();
  });
  if(currentWeatherPage==='heatmap')ensureHeatCanvas();
@@ -303,9 +305,23 @@ function showHeatLayer(entry,key){
  const scale=$('#heat-scale');
  if(scale){scale.replaceChildren();for(let i=0;i<=5;i++){const tick=document.createElement('span');tick.textContent=fmt(entry.min+(entry.max-entry.min)*i/5,1)+' °C';scale.appendChild(tick);}}
 }
-async function loadHeatmap(force=false){
+function scheduleClickedHeatmap(latlng,delay=300){
+ // Only Leaflet's click event (not pan/zoom) enters this path.
+ clearTimeout(heatRefreshTimer);
+ const focus={lat:Number(latlng.lat),lng:Number(latlng.lng)};
+ heatRefreshTimer=setTimeout(()=>{
+  heatRefreshTimer=null;
+  if(currentWeatherPage==='heatmap'&&weatherMap)loadHeatmap(false,focus,true);
+ },delay);
+}
+async function loadHeatmap(force=false,focus=null,fromClick=false){
  if(!weatherMap||currentWeatherPage!=='heatmap')return;
- const grid=heatGrid(weatherMap.getBounds(),5,6);
+ const viewport=weatherMap.getBounds();
+ const halfLat=(viewport.getNorth()-viewport.getSouth())/2;
+ const halfLng=(viewport.getEast()-viewport.getWest())/2;
+ // Clicking a new location samples a window centered on that location without moving the map.
+ const bounds=focus?L.latLngBounds([[focus.lat-halfLat,focus.lng-halfLng],[focus.lat+halfLat,focus.lng+halfLng]]):viewport;
+ const grid=heatGrid(bounds,5,6);
  const key=heatGridKey(grid,weatherMap.getZoom());
  const now=Date.now(),cached=heatCache.get(key),button=$('#reload-heat');
  if(!force&&cached&&now-cached.savedAt<HEAT_CACHE_TTL){
@@ -313,10 +329,17 @@ async function loadHeatmap(force=false){
    status('✓ Couche thermique réutilisée depuis le cache (10 min).');
    return;
  }
- if(heatBusy){status('Carte thermique : une requête est en cours.');return;}
+ if(heatBusy){
+   if(fromClick){scheduleClickedHeatmap(focus,750);status('Carte thermique : nouvelle position sélectionnée, actualisation après la requête en cours.');}
+   else status('Carte thermique : une requête est en cours.');
+   return;
+ }
  const remaining=Math.max(heatCooldownUntil,heatLastNetworkAt+HEAT_REQUEST_INTERVAL)-now;
  if(remaining>0){
-   status('Carte thermique : limite des appels. Actualisation possible dans '+Math.ceil(remaining/1000)+' s ; couche existante conservée.');
+   if(fromClick){
+     scheduleClickedHeatmap(focus,remaining+50);
+     status('Carte thermique : nouveau point sélectionné. Actualisation automatique dans '+Math.ceil(remaining/1000)+' s (limite Open-Meteo).');
+   }else status('Carte thermique : limite des appels. Actualisation possible dans '+Math.ceil(remaining/1000)+' s ; couche existante conservée.');
    return;
  }
  const request=++heatRequest,controller=new AbortController();
