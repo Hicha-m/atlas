@@ -142,3 +142,7 @@ Voir [la stratégie de test et ses limites](docs/TESTING.md).
 ## Couverture internationale de l'électricité
 
 La navigation propose **France** (RTE/ODRE), **Europe** (historique annuel + production publique nette récente Energy-Charts) et **Monde** (carte annuelle par pays via OWID/Ember). Les données annuelles ne sont jamais présentées comme temps réel. [Documentation technique complète](docs/ELECTRICITY_WORLD.md).
+
+## Performances CI / GitHub Actions
+
+CI rapide sur PR (Chromium desktop et mobile), matrice complète avec tablette sur `main`, cache navigateur, mesures automatiques dans le résumé des jobs et surveillance de la révision Vercel exacte sans pause fixe de 85 s. [Mesures de référence et comparaisons](docs/CI_PERFORMANCE.md).

@@ -24,9 +24,6 @@ jobs:
   live-production:
     name: Production browser and upstream health
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
-      options: --ipc=host
     timeout-minutes: 18
     env:
       ATLAS_PRODUCTION_URL: https://atlas-live-data-studio.vercel.app
@@ -34,13 +31,36 @@ jobs:
     steps:
       - name: Checkout tests
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reuse Chromium binaries
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.56.1-${{ runner.os }}-${{ runner.arch }}
       - name: Install test runner
         run: npm install --no-audit --no-fund
-      - name: Allow production rollout to finish on push
+      - name: Install Chromium only if cache is empty
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+      - name: Wait for exact deployed commit (instead of 85s sleep)
         if: github.event_name == 'push'
-        run: sleep 85
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          node scripts/wait-for-deployment.mjs
+          echo "- Deployment readiness: $((SECONDS-start)) seconds (exact SHA checked)" >> "$GITHUB_STEP_SUMMARY"
       - name: Check deployed website and real RTE / Open-Meteo services
-        run: npm run test:live
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          npm run test:live
+          echo "- Real API Playwright: $((SECONDS-start)) seconds" >> "$GITHUB_STEP_SUMMARY"
       - name: Summarize execution
         if: always()
         shell: bash
@@ -64,5 +84,5 @@ jobs:
           path: |
             test-results/
             playwright-production-report/
-          retention-days: 14
+          retention-days: 7
           if-no-files-found: ignore
