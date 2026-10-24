@@ -1,7 +1,7 @@
 const modules = [
  ['weather','Météo mondiale','Conditions et prévisions, température, pluie et vent','☁️','Open-Meteo'],
  ['electricity','Électricité','Production, consommation et mix énergétique','⚡','RTE éCO2mix'],
- ['transport','Transports','Horaires, retards et positions disponibles','🚆','transport.data.gouv.fr'],
+ ['transport','Transports','Catalogue de réseaux et ressources GTFS / GTFS-RT','🚆','transport.data.gouv.fr'],
  ['bikes','Vélos partagés','Disponibilité des vélos et bornes','🚲','GBFS'],
  ['planes','Avions en vol','Trajectoires, altitude et vitesse','✈️','OpenSky'],
  ['earthquakes','Séismes','Événements sismiques et magnitudes','🌍','USGS'],
@@ -30,7 +30,7 @@ function savedWeatherLocation(){try{const m=document.cookie.match(/(?:^|; )atlas
 function rememberWeatherLocation(){document.cookie='atlas_weather_location='+encodeURIComponent(JSON.stringify(city))+'; Max-Age=15552000; Path=/; SameSite=Lax';}
 
 let weather=null, city={name:'Marseille',country:'France',latitude:43.2965,longitude:5.3698},lastUpdate=null;
-let electricityDispose=null, immersiveDispose=null;
+let electricityDispose=null, immersiveDispose=null,transportDispose=null;
 function nav(){
  const path=location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
  const root=path[0]||'',section=path[1]||'';
@@ -39,12 +39,17 @@ function nav(){
  $('#nav').innerHTML='<a class="nav-link '+(!root?'active':'')+'" href="#/"'+(!root?' aria-current="page"':'')+'><span class="sym">▦</span> Vue d’ensemble</a>'+
  modules.map(m=>{
   const name=m[0];
-  const item='<a class="nav-link'+active(name)+'" href="#/'+name+'"'+(root===name&&!section?' aria-current="page"':'')+'><span class="sym">'+m[3]+'</span> '+m[1]+(['weather','electricity'].includes(name)?'<small>●</small>':'')+'</a>';
+  const item='<a class="nav-link'+active(name)+'" href="#/'+name+'"'+(root===name&&!section?' aria-current="page"':'')+'><span class="sym">'+m[3]+'</span> '+m[1]+(['weather','electricity','transport'].includes(name)?'<small>●</small>':'')+'</a>';
   if(name==='weather')return item+'<div class="atlas-region-links">'+
     regionLink('#/weather/overview','☁️ Météo Atlas',root==='weather'&&['overview','map','heatmap','data'].includes(section))+
     regionLink('#/weather/immersive','✨ Météo immersive',root==='weather'&&section==='immersive')+'</div>';
   if(name==='electricity')return item+'<div class="atlas-region-links">'+
-    regionLink('#/electricity/overview','🇫🇷 France',root==='electricity'&&['overview','mix','history','data'].includes(section))+
+    regionLink('#/electricity/overview','🇫🇷 France',root==='electricity'&&['overview','mix','trends','data'].includes(section))+
+    (root==='electricity'&&['overview','mix','trends','data'].includes(section)?'<div class="atlas-sub-region">'+
+     regionLink('#/electricity/overview','Vue d’ensemble',section==='overview')+
+     regionLink('#/electricity/mix','Mix électrique',section==='mix')+
+     regionLink('#/electricity/trends','Évolutions',section==='trends')+
+     regionLink('#/electricity/data','Données',section==='data')+'</div>':'')+
     regionLink('#/electricity/europe','🇪🇺 Europe',root==='electricity'&&section==='europe')+
     regionLink('#/electricity/world','🌍 Monde',root==='electricity'&&section==='world')+'</div>';
   return item;
@@ -66,6 +71,7 @@ function moduleChooser(type){
 function render(){
  if(electricityDispose){electricityDispose();electricityDispose=null;}
  if(immersiveDispose){immersiveDispose();immersiveDispose=null;}
+ if(transportDispose){transportDispose();transportDispose=null;}
  if(weatherMap){weatherMap.remove();weatherMap=null;weatherMarker=null;heatOverlay=null;}
  clearTimeout(citySearchTimer);heatRequest++;citySearchSequence++;
  heatController?.abort();heatController=null;heatBusy=false;heatRenderedKey=null;
@@ -80,6 +86,13 @@ function render(){
     if(location.hash==='#/weather/immersive'&&$('#app'))immersiveDispose=module.mountImmersive($('#app'));
    }).catch(error=>{
     if(location.hash==='#/weather/immersive')$('#app').innerHTML='<div class="panel" role="alert">Météo immersive indisponible : '+safe(error.message)+'</div>';
+   });
+ }else if(root==='transport'){
+   $('#app').innerHTML='<div class="panel" role="status">Chargement du catalogue transports…</div>';
+   import('./transport.js').then(module=>{
+    if(location.hash==='#/transport'&&$('#app'))transportDispose=module.mountTransport($('#app'));
+   }).catch(error=>{
+    if(location.hash==='#/transport')$('#app').innerHTML='<div class="panel" role="alert">Catalogue transports indisponible : '+safe(error.message)+'</div>';
    });
  }else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du comparateur électrique international…</div>';
@@ -100,8 +113,8 @@ function render(){
  }else placeholder(modules.find(m=>m[0]===root));
  window.scrollTo({top:0,behavior:'instant'});
 }
-function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>02</b><small>Modules opérationnels</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
-function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.toLowerCase().includes(query.toLowerCase()));$('#catalog').innerHTML=list.map(m=>`<a href="#/${m[0]}" class="card"><span class="pill ${['weather','electricity'].includes(m[0])?'ready':''}">${['weather','electricity'].includes(m[0])?'ACTIF':'À VENIR'}</span><span class="card-icon">${m[3]}</span><h3>${m[1]}</h3><p>${m[2]}</p><span class="arrow">↗</span></a>`).join('')||'<p>Aucun résultat.</p>';}
+function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>03</b><small>Modules opérationnels</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
+function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.toLowerCase().includes(query.toLowerCase()));$('#catalog').innerHTML=list.map(m=>`<a href="#/${m[0]}" class="card"><span class="pill ${['weather','electricity','transport'].includes(m[0])?'ready':''}">${['weather','electricity','transport'].includes(m[0])?'ACTIF':'À VENIR'}</span><span class="card-icon">${m[3]}</span><h3>${m[1]}</h3><p>${m[2]}</p><span class="arrow">↗</span></a>`).join('')||'<p>Aucun résultat.</p>';}
 function placeholder(m){if(!m){home();return;}$('#app').innerHTML=`<a class="back" href="#/">← Tous les modules</a><div class="eyebrow">MODULE EN PRÉPARATION</div><h1>${m[3]} ${m[1]}</h1><p class="lead">${m[2]}</p><div class="empty"><h2>Ce module sera développé prochainement.</h2><p>Fournisseur prévu : ${safe(m[4])}. Il sera intégré à la même architecture que le module Météo, avec des outils adaptés à ces données.</p><a class="btn" href="#/">Revenir au catalogue →</a></div>`;}
 function weatherView(){
  const p=currentWeatherPage;

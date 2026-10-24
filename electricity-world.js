@@ -107,10 +107,6 @@ export function mountElectricityWorld(root,mode='world'){
  root.innerHTML='<div class="elec-shell world-shell"><div class="repo-heading elec-repo-heading"><div class="repo-title">'+
  '<span class="repo-icon elec-repo-icon" aria-hidden="true">🌐</span><div><div class="repo-eyebrow">Atlas Live / Module 02 / Comparaisons internationales</div>'+
  '<h1>Électricité · '+regionTitle(state.mode)+'</h1><p>Statistiques annuelles des systèmes électriques. Pas de mesures en temps réel.</p></div></div></div>'+
- '<nav class="weather-tabs elec-tabs" aria-label="Couverture géographique">'+
- '<a class="weather-tab" href="#/electricity/overview">🇫🇷 France · temps réel</a>'+
- '<a class="weather-tab'+(state.mode==='europe'?' selected':'')+'" href="#/electricity/europe">🇪🇺 Europe · annuel</a>'+
- '<a class="weather-tab'+(state.mode==='world'?' selected':'')+'" href="#/electricity/world">🌍 Monde · annuel</a></nav>'+
  '<div id="world-body" role="region" aria-label="Données électriques internationales"><div class="panel world-loading" role="status">Chargement des séries historiques mondiales…</div></div>'+
  '<section class="panel elec-attribution"><div><strong>Sources : Our World in Data et Ember</strong>'+
  '<p>Données nationales annuelles historiques. Chaque cellule porte son année propre ; les données manquantes ne sont pas interpolées. Comparaison de production, de parts bas-carbone et renouvelable et d’intensité CO₂. Ces séries ne sont pas identiques aux données instantanées RTE.</p>'+

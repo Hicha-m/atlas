@@ -1,0 +1,46 @@
+/* Atlas / Public transport data catalogue */
+.tr-page{max-width:1300px;margin:auto;color:#f0f6fc}
+.tr-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;background:linear-gradient(115deg,#18293b,#151b23 70%);border:1px solid #35485a;border-radius:20px;padding:36px 40px}
+.tr-eyebrow{font-weight:750;letter-spacing:1.6px;font-size:11px;color:#93b7d5}
+.tr-hero h1{font-size:clamp(30px,4.4vw,54px);margin:15px 0 10px}
+.tr-hero p{font-size:15px;max-width:690px;color:#b0becc;line-height:1.7;margin:0}
+.tr-hero-mark{font-size:clamp(58px,8vw,112px)}
+.tr-alert{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 24px;padding:15px 18px;border:1px solid #375276;border-radius:12px;background:#15243a;font-size:13px;color:#b2c5d8;line-height:1.6}
+.tr-alert strong{color:#e4f3ff}
+.tr-filter-panel{display:grid;grid-template-columns:minmax(230px,1fr) minmax(160px,210px) auto auto;align-items:end;gap:14px;background:#151b23;border:1px solid #3d444d;border-radius:15px;padding:19px}
+.tr-filter-panel>div{min-width:0}
+.tr-filter-panel label:not(.tr-realtime){display:block;font-size:12px;color:#adb8c6;margin-bottom:9px}
+.tr-filter-panel input[type=search],.tr-filter-panel select{height:42px;width:100%;min-width:0;background:#0d1117;border:1px solid #45505b;border-radius:8px;color:#f0f6fc;padding:0 12px}
+.tr-realtime{display:flex;align-items:center;gap:8px;min-height:42px;font-size:12px;color:#dde6f0;cursor:pointer}
+.tr-realtime input{accent-color:#58a6ff}
+.tr-refresh,.tr-more,.tr-summary button{height:42px;background:#222b37;color:#eaf3ff;border:1px solid #455666;border-radius:8px;padding:0 15px;cursor:pointer}
+.tr-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:23px 0 16px;font-size:13px;color:#aab9c8}
+.tr-summary button:disabled{opacity:.45;cursor:not-allowed}
+.tr-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.tr-card{display:flex;flex-direction:column;min-width:0;padding:21px;background:#151b23;border:1px solid #394450;border-radius:16px}
+.tr-card-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:15px}
+.tr-number{font-size:12px;color:#879cb2;font-weight:700}
+.tr-chip{font-size:10px;font-weight:650;color:#76ddc1;border:1px solid #347865;border-radius:99px;padding:5px 9px;background:#133429}
+.tr-chip.tr-theory{color:#b1bdc9;border-color:#4c525c;background:#222830}
+.tr-card h2{font-size:18px;line-height:1.35;margin:0 0 10px;overflow-wrap:anywhere}
+.tr-publisher{font-size:12px;color:#9facb9;margin:0 0 16px;line-height:1.5}
+.tr-formats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.tr-formats span{font-size:10px;background:#283747;border:1px solid #40566e;border-radius:5px;padding:5px 7px;color:#c5dbed}
+.tr-details{margin-top:auto;border-top:1px solid #333e49;padding-top:13px}
+.tr-details summary{cursor:pointer;font-size:12px;color:#afcfe9;font-weight:650}
+.tr-resource-list{margin:12px 0;max-height:310px;overflow:auto}
+.tr-resource{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #303943}
+.tr-resource strong{display:block;overflow-wrap:anywhere;font-size:12px}
+.tr-resource small{display:block;margin-top:5px;color:#97a8ba;font-size:10px}
+.tr-resource a,.tr-source-link{color:#80c6ff;text-decoration:underline;text-underline-offset:3px;font-size:11px;white-space:nowrap}
+.tr-source-link,.tr-source-missing{margin-top:15px;font-size:11px}
+.tr-source-missing,.tr-limit{color:#9ca8b8;font-size:11px}
+.tr-state{grid-column:1/-1;border:1px dashed #445467;border-radius:14px;padding:45px 20px;text-align:center;color:#b7c8d9}
+.tr-error{border-color:#bc626e;color:#ffb9c1}
+.tr-more{display:block;margin:20px auto 0}
+.tr-more[hidden]{display:none}
+.tr-source-note{font-size:12px;color:#9da9b8;line-height:1.7;margin-top:23px}
+.tr-source-note a{color:#8acbff;text-decoration:underline}
+@media(max-width:1180px){.tr-results{grid-template-columns:repeat(2,minmax(0,1fr))}.tr-filter-panel{grid-template-columns:minmax(180px,1fr) minmax(150px,190px)}}
+@media(max-width:680px){.tr-hero{padding:25px 20px}.tr-hero-mark{display:none}.tr-filter-panel{grid-template-columns:1fr}.tr-results{grid-template-columns:1fr}.tr-card{padding:19px}.tr-summary button{width:100%}}
+@media(prefers-reduced-motion:reduce){.tr-page *{scroll-behavior:auto!important}}

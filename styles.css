@@ -237,3 +237,7 @@ nav.weather-tabs .weather-tab,nav.elec-tabs .weather-tab{flex:0 0 auto;white-spa
  .module-choice{min-height:185px;padding:21px}
 }
 @media(prefers-reduced-motion:reduce){.sidebar,.sidebar-backdrop,.module-choice{transition:none!important}}
+
+/* France subviews are now in the sidebar rather than duplicate horizontal tabs. */
+.atlas-sub-region{border-left:1px solid #43546a;margin:1px 0 8px 11px;padding-left:8px}
+.atlas-sub-region a{font-size:11px;padding:6px 9px}

@@ -40,7 +40,7 @@ test('electricity overview renders RTE data, units and historical chart',async({
   await expect(page.getByRole('heading',{name:'Explorer l’électricité'})).toBeVisible();
   await page.locator('.module-choice[href="#/electricity/overview"]').click();
   await expect(page.getByRole('heading',{name:/Électricité/})).toBeVisible();
-  expect(await page.locator('nav.elec-tabs').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
+  await expect(page.locator('nav.weather-tabs.elec-tabs')).toHaveCount(0);
   await expect(page.locator('.elec-kpi')).toHaveCount(4);
   await expect(page.locator('.elec-kpi').first()).toContainText('GW');
   await expect(page.locator('.elec-kpi').nth(2)).toContainText('gCO₂e/kWh');
@@ -110,9 +110,11 @@ test('module navigation reuses cached records across pages',async({page})=>{
   const calls = await mockRte(page);
   await page.goto('/#/electricity/overview');
   await expect(page.locator('.elec-kpi')).toHaveCount(4);
-  await page.locator('.elec-tabs a[href="#/electricity/mix"]').click();
+  if(await page.locator('#sidebar-toggle').isVisible())await page.locator('#sidebar-toggle').click();
+  await page.locator('.atlas-region-links a[href="#/electricity/mix"]').click();
   await expect(page.locator('.elec-donut')).toBeVisible();
-  await page.locator('.elec-tabs a[href="#/electricity/data"]').click();
+  if(await page.locator('#sidebar-toggle').isVisible())await page.locator('#sidebar-toggle').click();
+  await page.locator('.atlas-region-links a[href="#/electricity/data"]').click();
   await expect(page.locator('.elec-table-row').first()).toBeVisible();
   expect(calls()).toBe(1);
 });
