@@ -70,7 +70,7 @@ test('favorite places, geocoding, saved cookie and classic route work',async({pa
  await page.locator('#wi-location-trigger').click();
  await expect(page.locator('#wi-favorites')).toContainText('Marseille');
  await page.getByRole('button',{name:'Fermer'}).click();
- await page.locator('.wi-section-switch a[href="#/weather/overview"]').click();
+ await page.locator('.atlas-region-links a[href="#/weather/overview"]').click();
  await expect(page.getByRole('heading',{name:/Météo mondiale/})).toBeVisible();
  expect(count.geo).toBeGreaterThan(0);
 });
@@ -111,4 +111,46 @@ test('weather view retains old Atlas routes and responsive mobile layout',async(
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(2);
  }
+});
+
+test('Atlas module entry opens explicit weather choices and highlights selected sidebar view',async({page})=>{
+ await fixtures(page);
+ await page.goto('/#/weather');
+ await expect(page.getByRole('heading',{name:'Choisir votre météo'})).toBeVisible();
+ await expect(page.locator('.module-choice')).toHaveCount(2);
+ await page.locator('.module-choice[href="#/weather/immersive"]').click();
+ await expect(page.locator('.wi-current-temp')).toBeVisible();
+ await expect(page.locator('.atlas-region-links a[href="#/weather/immersive"]')).toHaveClass(/active/);
+ await expect(page.locator('.wi-section-switch')).toHaveCount(0);
+ await expect(page.locator('.wi-top-link')).toHaveCount(0);
+ await expect(page.locator('.wi-hour-graph path')).toHaveAttribute('d',/L/);
+ await expect(page.locator('#wi-city-quick')).toBeVisible();
+ await page.locator('#wi-city-quick').click();
+ await expect(page.getByRole('dialog',{name:'Mes lieux'})).toBeVisible();
+});
+test('electricity entry offers regions without silently starting France view',async({page})=>{
+ await page.goto('/#/electricity');
+ await expect(page.getByRole('heading',{name:'Explorer l’électricité'})).toBeVisible();
+ await expect(page.locator('.module-choice')).toHaveCount(3);
+ await expect(page.locator('#electricity-content')).toHaveCount(0);
+});
+test('mobile sidebar is off-canvas, opened by menu and swipe, and closes after selection',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/#/');
+ await expect(page.locator('#sidebar-toggle')).toBeVisible();
+ await expect(page.locator('#atlas-sidebar')).not.toBeInViewport();
+ await page.locator('#sidebar-toggle').click();
+ await expect(page.locator('#atlas-sidebar')).toBeInViewport();
+ await page.locator('#atlas-sidebar a[href="#/weather"]').click();
+ await expect(page.getByRole('heading',{name:'Choisir votre météo'})).toBeVisible();
+ await expect(page.locator('#atlas-sidebar')).not.toBeInViewport();
+ await page.evaluate(()=>{
+  const start=new Touch({identifier:1,target:document.body,clientX:innerWidth-5,clientY:400});
+  const end=new Touch({identifier:1,target:document.body,clientX:innerWidth-150,clientY:408});
+  document.dispatchEvent(new TouchEvent('touchstart',{touches:[start],targetTouches:[start],changedTouches:[start],bubbles:true}));
+  document.dispatchEvent(new TouchEvent('touchend',{touches:[],targetTouches:[],changedTouches:[end],bubbles:true}));
+ });
+ await expect(page.locator('#atlas-sidebar')).toBeInViewport();
+ await page.locator('#sidebar-close').click();
+ await expect(page.locator('#atlas-sidebar')).not.toBeInViewport();
 });
