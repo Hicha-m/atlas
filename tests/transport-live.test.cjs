@@ -2,7 +2,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const live=()=>import('../transport-live-data.js');
 const endpoint=()=>import('../api/transport-live.js');
-const base=new Date('2026-10-24T11:00:00.000Z').getTime();
+const base=Math.floor(Date.now()/1000)*1000;
 function v(num){let n=BigInt(num),data=[];do{let x=Number(n&127n);n>>=7n;if(n)x|=128;data.push(x);}while(n);return Buffer.from(data);}
 const field=(n,num)=>Buffer.concat([v(BigInt(n*8)),v(num)]);
 const bytes=(n,p)=>Buffer.concat([v(BigInt(n*8+2)),v(p.length),p]);
