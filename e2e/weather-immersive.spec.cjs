@@ -70,7 +70,7 @@ test('favorite places, geocoding, saved cookie and classic route work',async({pa
  await page.locator('#wi-location-trigger').click();
  await expect(page.locator('#wi-favorites')).toContainText('Marseille');
  await page.getByRole('button',{name:'Fermer'}).click();
- await page.getByRole('link',{name:/Vue Atlas/}).click();
+ await page.locator('.wi-section-switch a[href="#/weather/overview"]').click();
  await expect(page.getByRole('heading',{name:/Météo mondiale/})).toBeVisible();
  expect(count.geo).toBeGreaterThan(0);
 });
