@@ -102,7 +102,7 @@ test('heat opacity exposes real OSM basemap and remains seamless on zoom without
  const properties=await page.evaluate(()=>{
   const tile=document.querySelector('canvas.atlas-heat-tile');
   const layer=tile?.closest('.leaflet-layer');
-  return {canvasWidth:tile?.width,canvasHeight:tile?.height,cssWidth:tile?.style.width,opacity:Number(layer?.style.opacity)};
+  return {canvasWidth:tile?.width,canvasHeight:tile?.height,cssWidth:tile?getComputedStyle(tile).width:null,opacity:Number(layer?.style.opacity)};
  });
  expect(properties.canvasWidth).toBe(258);
  expect(properties.canvasHeight).toBe(258);
