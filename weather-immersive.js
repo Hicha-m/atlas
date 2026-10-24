@@ -44,11 +44,11 @@ function renderHours(hours,unit){
  hours.forEach((h,i)=>{
   const value=numeric(h.temperature);
   if(value===null){previousValid=false;return;}
-  path+=(previousValid?' L ':' M ')+((i+.5)*100)+' '+y(value);
+  path+=(previousValid?' L ':' M ')+((i+.5)*85)+' '+y(value);
   previousValid=true;
  });
- const nodes=hours.map((h,i)=>numeric(h.temperature)===null?'':'<circle cx="'+((i+.5)*100)+'" cy="'+y(h.temperature)+'" r="4.4"/>').join('');
- const graph=vals.length?'<svg class="wi-hour-graph" viewBox="0 0 '+(hours.length*100)+' 54" preserveAspectRatio="none" role="img" aria-label="Courbe continue des températures horaires, en '+(unit==='f'?'degrés Fahrenheit':'degrés Celsius')+'"><path d="'+path.trim()+'"/>'+nodes+'</svg>':
+ const nodes=hours.map((h,i)=>numeric(h.temperature)===null?'':'<circle cx="'+((i+.5)*85)+'" cy="'+y(h.temperature)+'" r="4.4"/>').join('');
+ const graph=vals.length?'<svg class="wi-hour-graph" viewBox="0 0 '+(hours.length*85)+' 54" preserveAspectRatio="none" role="img" aria-label="Courbe continue des températures horaires, en '+(unit==='f'?'degrés Fahrenheit':'degrés Celsius')+'"><path d="'+path.trim()+'"/>'+nodes+'</svg>':
   '<span class="wi-hour-unavailable">Températures indisponibles</span>';
  return '<div class="wi-hour-scroll"><div class="wi-hours" role="list" aria-label="Prévisions pour les prochaines heures">'+hours.map((h,i)=>{
   const state=condition(h.code,h.isDay);
