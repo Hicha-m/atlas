@@ -1,6 +1,6 @@
 import {
  normalizeSwiss,normalizeTfLArrivals,normalizeTfLSearch,normalizeTfLStatus,
- decodeSncfGtfsRt,normalizeSncfBoard
+ decodeSncfGtfsRt,normalizeSncfBoard,decodeGtfsServiceAlerts
 } from '../transport-live-data.js';
 
 const ALLOWED_MODES=new Set(['train','tram','bus','boat','cableway']);
@@ -57,6 +57,14 @@ export default async function handler(req,res){
    response={statuses:normalizeTfLStatus(json),provider:'Transport for London',
     fetchedAt:new Date().toISOString(),source:'https://api.tfl.gov.uk/'};
    cache='public, max-age=30, s-maxage=90, stale-while-revalidate=45';
+  }else if(type==='marseille-alerts'){
+   const bytes=await readUpstream('https://www.data.gouv.fr/api/1/datasets/r/834199c7-2e4f-4ca5-8675-a78894601a77',{binary:true});
+   const decoded=decodeGtfsServiceAlerts(bytes);
+   response={provider:'La Métropole Mobilité · GTFS-RT Service Alerts',fetchedAt:new Date().toISOString(),
+    updated:decoded.updated,alerts:decoded.alerts,entities:decoded.entities,
+    source:'https://www.data.gouv.fr/datasets/information-trafic-en-temps-reel-affectant-les-reseaux-de-transports-en-commun-de-la-metropole-daix-marseille-provence',
+    caveat:'Messages d’information trafic du producteur. Ce flux ne fournit pas les prochains passages par arrêt.'};
+   cache='public, max-age=30, s-maxage=240, stale-while-revalidate=60';
   }else if(type==='sncf'){
    if(q.length>80)return res.status(400).json({error:'Filtre trop long'});
    const bytes=await readUpstream('https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates',{binary:true});
