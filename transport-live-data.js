@@ -153,3 +153,70 @@ export function normalizeSncfBoard(decoded,{query='',max=65}={}){
   mode:'train'
  })),matches:list.length,feedUpdated:decoded.timestamp,total:decoded.entities};
 }
+
+
+/* GTFS-RT Service Alerts: only publisher-authored incidents, never inferred ones. */
+function alertText(buf){
+ let alternatives=[];
+ for(const [field,wire,value] of fields(buf))if(field===1&&wire===2){
+  let text='',language='';
+  for(const [f,w,v] of fields(value))if(w===2){
+   if(f===1)text=str(fieldString(v),1000);
+   if(f===2)language=str(fieldString(v),15);
+  }
+  if(text)alternatives.push({text,language});
+ }
+ return alternatives.find(x=>/^fr\b/i.test(x.language))?.text||alternatives[0]?.text||'';
+}
+function alertPeriod(buf){
+ const p={start:null,end:null};
+ for(const [f,w,v] of fields(buf))if(w===0&&v>0n&&v<BigInt(Number.MAX_SAFE_INTEGER)){
+  if(f===1)p.start=new Date(Number(v)*1000).toISOString();
+  if(f===2)p.end=new Date(Number(v)*1000).toISOString();
+ }
+ return p;
+}
+function alertSelector(buf){
+ let route='',stop='';
+ for(const [f,w,v] of fields(buf))if(w===2){
+  if(f===2)route=str(fieldString(v),90);
+  if(f===5)stop=str(fieldString(v),90);
+ }
+ return {route,stop};
+}
+function parseAlert(buf,nowMs){
+ const a={title:'',description:'',routes:[],stops:[],from:null,to:null,effect:null,cause:null};
+ const periods=[];
+ for(const [f,w,v] of fields(buf)){
+  if(f===1&&w===2)periods.push(alertPeriod(v));
+  if(f===5&&w===2){const sel=alertSelector(v);if(sel.route)a.routes.push(sel.route);if(sel.stop)a.stops.push(sel.stop);}
+  if(f===6&&w===0)a.cause=Number(v);
+  if(f===7&&w===0)a.effect=Number(v);
+  if(f===10&&w===2)a.title=alertText(v);
+  if(f===11&&w===2)a.description=alertText(v);
+ }
+ if(periods.length){
+  const match=periods.find(p=>(!p.start||Date.parse(p.start)<=nowMs)&&(!p.end||Date.parse(p.end)>=nowMs))
+    ||periods.find(p=>!p.end||Date.parse(p.end)>=nowMs)||periods[0];
+  a.from=match.start;a.to=match.end;
+ }
+ a.active=periods.length===0||periods.some(p=>(!p.start||Date.parse(p.start)<=nowMs)&&(!p.end||Date.parse(p.end)>=nowMs));
+ a.routes=[...new Set(a.routes)].slice(0,12);a.stops=[...new Set(a.stops)].slice(0,12);
+ return a;
+}
+export function decodeGtfsServiceAlerts(bytes,nowMs=Date.now()){
+ if(!Buffer.isBuffer(bytes))bytes=Buffer.from(bytes);
+ if(bytes.length>12*1024*1024)throw Error('Flux d’alertes trop volumineux');
+ let updated=null,alerts=[],entities=0;
+ for(const [f,w,v] of fields(bytes)){
+  if(f===1&&w===2){for(const [ff,ww,val] of fields(v))if(ff===3&&ww===0&&val>0n)updated=new Date(Number(val)*1000).toISOString();}
+  if(f!==2||w!==2)continue;
+  entities++;if(entities>10000)break;
+  for(const [ef,ew,ev] of fields(v))if(ef===5&&ew===2){
+   const a=parseAlert(ev,nowMs);
+   if(a.title||a.description)alerts.push(a);
+  }
+ }
+ alerts.sort((a,b)=>Number(b.active)-Number(a.active));
+ return {updated,alerts:alerts.slice(0,90),entities};
+}
