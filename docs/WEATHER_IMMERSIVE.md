@@ -46,3 +46,12 @@ En Europe, les différents pollens ne sont pas toujours publiés, notamment hors
 ## Évolutions futures (hors lot 2)
 
 Radar de précipitations **réel** avec fournisseur autorisé (ne pas confondre heatmap de températures, image de fond cartographique et véritable mosaïque radar), alertes officielles et notifications opt-in, personnalisation étendue de l'interface, métriques d'accessibilité auditables.
+
+
+## Correction en production — 24 octobre 2026
+
+La première exécution E2E réelle #40082870716 a révélé une page bloquée sur « Chargement des prévisions ». Les deux requêtes externes Open-Meteo étaient pendantes dans Chromium, mais leurs URLs renvoyaient des JSON valides lorsqu'elles étaient interrogées depuis un autre client. La preuve établit un problème de chemin réseau navigateur-fournisseur sans désigner avec certitude la cause amont.
+
+Correctif réservé à la nouvelle vue : la fonction Vercel /api/immersive-weather?kind=forecast|air&lat=...&lon=... est un relais à hôtes et paramètres fixes, pas un proxy générique. GET seulement, latitude et longitude validées, timeout amont 8 s, cache CDN 600 s, erreurs jamais cachées. Un délai navigateur de 12 s affiche une erreur et Réessayer au lieu de bloquer indéfiniment. En local (127.0.0.1/localhost), les requêtes directes Open-Meteo sont conservées ; les vues météo classiques restent inchangées.
+
+Tests : cas de sécurité sur la fonction serverless, captures Playwright sur fixtures et contrôle du proxy réel et des tuiles OpenStreetMap sur le déploiement Vercel.
