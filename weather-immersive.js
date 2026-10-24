@@ -153,7 +153,7 @@ export function mountImmersive(root){
    iconTile('🌇','Coucher du soleil',hourLabel(today.sunset),'Heure locale')+
    iconTile('🌧️','Pluie prévue',labelPct(today.rain),'Probabilité maximale aujourd’hui')+
    iconTile('🌬️','Qualité de l’air',AQI,state.airLoading?'Chargement…':state.airError?'Service indisponible':aqi.label+' · AQI européen')+
-   iconTile('🌿','Pollens',state.airLoading?'…':pollenStatus(air),'Seulement si publiés par CAMS')+
+   iconTile('🌿','Pollens',state.airLoading?'…':pollenStatus(air),'Maximum parmi les pollens disponibles · CAMS')+
    '</div></section>'+
    '<section class="wi-surface wi-map-card"><div class="wi-panel-heading"><div><span class="wi-eyebrow">EXPLORER AUTOUR DE VOUS</span><h2>Cartes et températures</h2></div><a href="#/weather/heatmap" class="wi-map-link">Ouvrir la carte →</a></div>'+
    '<div class="wi-mini-map" id="wi-mini-map" aria-label="Carte OpenStreetMap autour de '+esc(city.name)+'"><div class="wi-map-fallback">Carte géographique en chargement…</div></div>'+
