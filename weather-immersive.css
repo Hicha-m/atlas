@@ -172,3 +172,11 @@
  .wi-brand h1{font-size:16px}
  .wi-hour-graph{top:118px}
 }
+
+
+/* At 360–390px the city action gets its own row instead of squeezing controls. */
+@media(max-width:390px){
+ .wi-toolbar{flex-wrap:wrap;gap:10px}
+ .wi-header-actions{width:100%;justify-content:flex-end}
+ .wi-city-quick{flex:1;max-width:none;white-space:nowrap}
+}
