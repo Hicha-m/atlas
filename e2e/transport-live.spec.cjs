@@ -76,7 +76,7 @@ test('Mobile and desktop transport pages avoid horizontal overflow and permit dr
  await page.locator('#sidebar-toggle').click();
  await expect(page.locator('#atlas-sidebar')).toBeInViewport();
  await page.locator('#atlas-sidebar a[href="#/transport/bus"]').click();
- await expect(page.getByRole('heading',{name:/Bus/})).toBeVisible();
+ await expect(page.getByRole('heading',{level:1,name:'Bus'})).toBeVisible();
 });
 
 test('Marseille RTM metropolitan alerts use actual provider messages and show no fake schedule',async({page})=>{
