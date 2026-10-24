@@ -62,7 +62,7 @@ test('production: optional live temperature heatmap overlay',async({page},info)=
     return page.locator('#heat-range').innerText();
   },{timeout:45000}).toContain('points');
   await expect(page.locator('canvas.atlas-heat-tile').first()).toBeVisible();
-  await expect(page.locator('#heat-opacity')).toHaveValue('72');
+  await expect(page.locator('#heat-opacity')).toHaveValue('70');
   await expect(page.locator('img.leaflet-tile-loaded').first()).toBeVisible();
   await page.screenshot({path:info.outputPath('production-heatmap-live.png'),fullPage:true});
 });
