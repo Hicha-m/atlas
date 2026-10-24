@@ -1,7 +1,7 @@
 const modules = [
  ['weather','Météo mondiale','Conditions et prévisions, température, pluie et vent','☁️','Open-Meteo'],
  ['electricity','Électricité','Production, consommation et mix énergétique','⚡','RTE éCO2mix'],
- ['transport','Transports','Catalogue de réseaux et ressources GTFS / GTFS-RT','🚆','transport.data.gouv.fr'],
+ ['transport','Transports','Prochains passages, retards et état des réseaux via des API de transport','🚆','transport.data.gouv.fr'],
  ['bikes','Vélos partagés','Disponibilité des vélos et bornes','🚲','GBFS'],
  ['planes','Avions en vol','Trajectoires, altitude et vitesse','✈️','OpenSky'],
  ['earthquakes','Séismes','Événements sismiques et magnitudes','🌍','USGS'],
@@ -43,6 +43,17 @@ function nav(){
   if(name==='weather')return item+'<div class="atlas-region-links">'+
     regionLink('#/weather/overview','☁️ Météo Atlas',root==='weather'&&['overview','map','heatmap','data'].includes(section))+
     regionLink('#/weather/immersive','✨ Météo immersive',root==='weather'&&section==='immersive')+'</div>';
+  if(name==='transport')return item+'<div class="atlas-region-links">'+
+  regionLink('#/transport','◫ Vue d’ensemble',root==='transport'&&section==='')+
+   regionLink('#/transport/trains','🚆 Trains',root==='transport'&&section==='trains')+
+   regionLink('#/transport/marseille','📍 Marseille · Trafic',root==='transport'&&section==='marseille')+
+   regionLink('#/transport/metros','🚇 Métros',root==='transport'&&section==='metros')+
+   regionLink('#/transport/tramways','🚊 Tramways',root==='transport'&&section==='tramways')+
+   regionLink('#/transport/bus','🚌 Bus',root==='transport'&&section==='bus')+
+   regionLink('#/transport/bateaux','⛴️ Bateaux',root==='transport'&&section==='bateaux')+
+   regionLink('#/transport/telepheriques','🚠 Téléphériques',root==='transport'&&section==='telepheriques')+
+   regionLink('#/transport/trafic','⚠️ Info trafic',root==='transport'&&section==='trafic')+
+   regionLink('#/transport/catalogue','▤ Sources & catalogue',root==='transport'&&section==='catalogue')+'</div>';
   if(name==='electricity')return item+'<div class="atlas-region-links">'+
     regionLink('#/electricity/overview','🇫🇷 France',root==='electricity'&&['overview','mix','trends','data'].includes(section))+
     (root==='electricity'&&['overview','mix','trends','data'].includes(section)?'<div class="atlas-sub-region">'+
@@ -88,12 +99,18 @@ function render(){
     if(location.hash==='#/weather/immersive')$('#app').innerHTML='<div class="panel" role="alert">Météo immersive indisponible : '+safe(error.message)+'</div>';
    });
  }else if(root==='transport'){
-   $('#app').innerHTML='<div class="panel" role="status">Chargement du catalogue transports…</div>';
-   import('./transport.js').then(module=>{
-    if(location.hash==='#/transport'&&$('#app'))transportDispose=module.mountTransport($('#app'));
-   }).catch(error=>{
-    if(location.hash==='#/transport')$('#app').innerHTML='<div class="panel" role="alert">Catalogue transports indisponible : '+safe(error.message)+'</div>';
-   });
+   const page=id.split('/')[1]||'overview';
+   $('#app').innerHTML='<div class="panel" role="status">Chargement des transports…</div>';
+   if(page==='catalogue'){
+    import('./transport.js').then(module=>{
+     if((location.hash==='#/transport/catalogue')&&$('#app'))transportDispose=module.mountTransport($('#app'));
+    }).catch(error=>{if(location.hash==='#/transport/catalogue')$('#app').innerHTML='<div class="panel" role="alert">Catalogue indisponible : '+safe(error.message)+'</div>';});
+   }else{
+    import('./transport-live.js').then(module=>{
+     if((location.hash==='#/transport/'+page||(page==='overview'&&location.hash==='#/transport'))&&$('#app'))
+      transportDispose=module.mountTransportLive($('#app'),page);
+    }).catch(error=>{if(location.hash.startsWith('#/transport'))$('#app').innerHTML='<div class="panel" role="alert">Transports indisponibles : '+safe(error.message)+'</div>';});
+   }
  }else if(root==='weather'){currentWeatherPage=weatherPageFromHash(location.hash.startsWith('#/')?location.hash.slice(2):'');weatherView(); }else if(root==='electricity' && ['europe','world'].includes(id.split('/')[1])){
    $('#app').innerHTML='<div class="panel" role="status">Chargement du comparateur électrique international…</div>';
    const route=id.split('/')[1];

@@ -11,7 +11,7 @@ async function route(page,code=200){
 }
 test('Transports loads real provider metadata, filters by city and format, and downloads CSV',async({page})=>{
  await route(page);
- await page.goto('/#/transport');
+ await page.goto('/#/transport/catalogue');
  await expect(page.getByRole('heading',{name:'Transports publics'})).toBeVisible();
  await expect(page.locator('.tr-card')).toHaveCount(2);
  await page.locator('#tr-search').fill('Marseille');
@@ -29,14 +29,14 @@ test('Transports loads real provider metadata, filters by city and format, and d
 });
 test('Transports reports upstream failure without fake departures',async({page})=>{
  await route(page,502);
- await page.goto('/#/transport');
+ await page.goto('/#/transport/catalogue');
  await expect(page.locator('.tr-error')).toBeVisible();
  await expect(page.locator('.tr-card')).toHaveCount(0);
  await expect(page.locator('#tr-export')).toBeDisabled();
 });
 test('Transports does not overflow desktop or mobile and sidebar remains functional',async({page})=>{
  await route(page);
- await page.goto('/#/transport');
+ await page.goto('/#/transport/catalogue');
  await expect(page.locator('.tr-card')).toHaveCount(2);
  for(const width of [360,390,768,1024,1440]){
   await page.setViewportSize({width,height:850});
