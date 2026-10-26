@@ -5,7 +5,7 @@
  */
 const sourceText=(value,max=1500)=>String(value??'').trim().slice(0,max);
 export const MARSEILLE_DATASET='ol-perturbation-la-mobilite';
-export const MARSEILLE_SOURCE='https://data.ampmetropole.fr/explore/dataset/ol-perturbation-la-mobilite/';
+export const MARSEILLE_SOURCE='https://data.ampmetropole.fr/explore/assets/ol-perturbation-la-mobilite/';
 export const MARSEILLE_API='https://data.ampmetropole.fr/api/explore/v2.1/catalog/datasets/'+MARSEILLE_DATASET+'/records';
 const dateOnly=value=>{
  const date=sourceText(value,35).slice(0,10);
