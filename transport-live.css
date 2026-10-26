@@ -87,3 +87,11 @@
 @media(max-width:1130px){.tl-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tl-board{grid-template-columns:1fr}}
 @media(max-width:700px){.tl-mode-grid{grid-template-columns:1fr}.tl-info-row{grid-template-columns:1fr}.tl-mode-card{min-height:160px}.tl-hero-symbol{display:none}.tl-page-head{align-items:flex-start;flex-direction:column}.tl-workspace{flex-direction:column;align-items:stretch}.tl-field,.tl-stop-controls{flex:none;min-width:0;width:100%}.tl-departure{padding:16px}.tl-departure-status .tl-time{font-size:20px}.tl-status-grid{grid-template-columns:1fr}}
 @media(max-width:390px){.tl-route{flex-wrap:wrap}.tl-line{max-width:100%}.tl-route strong{font-size:13px}}
+
+
+/* Marseille metropolitan disruptions have independently queryable network and mode. */
+.tl-alert-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%}
+.tl-alert-controls .tl-field{min-width:0}
+.tl-status-card small{overflow-wrap:anywhere;color:#9bb2c6;font-size:11px;line-height:1.55}
+@media(max-width:850px){.tl-alert-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.tl-alert-controls{grid-template-columns:1fr}}
