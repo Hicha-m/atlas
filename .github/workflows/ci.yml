@@ -51,6 +51,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:8765/transport-live.css -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-live.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-live-data.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/transport-extras.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-marseille-data.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/api/transport-live.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/api/transport-catalogue.js -o /dev/null
