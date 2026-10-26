@@ -74,13 +74,14 @@ export function buildSncfTrainMap(rows,stationLookup,{feedUpdated=null,available
   if(!station)continue;
   const parsed=Date.parse(row.sourceUpdated||feedUpdated||'');
   const updated=Number.isFinite(parsed)?new Date(parsed).toISOString():null;
+  const stale=!Number.isFinite(parsed)||nowMs-parsed>20*60*1000;
   markers.push({
    id:text(row.id,180),kind:trainClass(row.id,row.route),
-   number:trainNumber(row.id),status:mapStatus(row),
+   number:trainNumber(row.id),status:stale?'unknown':mapStatus(row),
    delay:typeof row.delay==='number'&&Number.isFinite(row.delay)?row.delay:null,
    cancelled:!!row.cancelled,stationName:station.name,stopCode,
    lat:station.lat,lng:station.lng,
-   nextStopAt:row.expected,updatedAt:updated,
+   nextStopAt:row.expected,updatedAt:updated,stale,
    freshnessMinutes:Number.isFinite(parsed)?Math.max(0,Math.round((nowMs-parsed)/60000)):null,
    positionType:'next_stop_anchor',geolocationMethod:'station_reference',
    hasLivePosition:false
