@@ -42,7 +42,13 @@ export function normalizeSncfStations(records){
   const lat=finite(loc?.lat),lng=finite(loc?.lon);
   if(!/^\d{8}$/.test(code)||!name||lat===null||lng===null||
      lat<40||lat>52||lng< -6||lng>11)continue;
-  if(!stations.has(code))stations.set(code,{code,name,lat,lng});
+  const lineCode=String(station.code_ligne??'').trim();
+  if(!stations.has(code))stations.set(code,{code,name,lat,lng,lineCodes:[],onLines:{}});
+  const saved=stations.get(code);
+  if(/^\d{6}$/.test(lineCode)&&!saved.lineCodes.includes(lineCode)){
+   saved.lineCodes.push(lineCode);
+   saved.onLines[lineCode]={lat,lng};
+  }
  }
  return stations;
 }
@@ -75,13 +81,35 @@ export function buildSncfTrainMap(rows,stationLookup,{feedUpdated=null,available
   const parsed=Date.parse(row.sourceUpdated||feedUpdated||'');
   const updated=Number.isFinite(parsed)?new Date(parsed).toISOString():null;
   const stale=!Number.isFinite(parsed)||nowMs-parsed>20*60*1000;
+  // A route segment is eligible only when both published stop codes are
+  // georeferenced on ONE identical official infrastructure line.
+  let segment=null;
+  if(!stale&&row.segment&&
+     row.segment.toStopId===row.stopId&&
+     row.segment.progress>0&&row.segment.progress<1){
+   const previousCode=uicFromStop(row.segment.fromStopId);
+   const previous=lookup.get(previousCode);
+   const common=previous?.lineCodes?.filter(c=>station.lineCodes?.includes(c))||[];
+   if(previous&&previousCode!==stopCode&&common.length===1){
+    const code=common[0];
+    segment={
+     fromName:previous.name,toName:station.name,
+     from:previous.onLines[code]||{lat:previous.lat,lng:previous.lng},
+     to:station.onLines[code]||{lat:station.lat,lng:station.lng},
+     lineCode:code,
+     fromTime:row.segment.fromTime,toTime:row.segment.toTime,
+     progress:row.segment.progress,
+     method:'official_rail_line_time_interpolation',isGps:false
+    };
+   }
+  }
   markers.push({
    id:text(row.id,180),kind:trainClass(row.id,row.route),
    number:trainNumber(row.id),status:stale?'unknown':mapStatus(row),
    delay:typeof row.delay==='number'&&Number.isFinite(row.delay)?row.delay:null,
    cancelled:!!row.cancelled,stationName:station.name,stopCode,
    lat:station.lat,lng:station.lng,
-   nextStopAt:row.expected,updatedAt:updated,stale,
+   nextStopAt:row.expected,updatedAt:updated,stale,segment,
    freshnessMinutes:Number.isFinite(parsed)?Math.max(0,Math.round((nowMs-parsed)/60000)):null,
    positionType:'next_stop_anchor',geolocationMethod:'station_reference',
    hasLivePosition:false
@@ -98,6 +126,7 @@ export function buildSncfTrainMap(rows,stationLookup,{feedUpdated=null,available
  const safeFeed=feedUpdated&&Number.isFinite(Date.parse(feedUpdated))?feedUpdated:null;
  return {markers,counts,totalWithAnchors:markers.length,selectedCount:rows.length,feedUpdated:safeFeed,
   sourceTotal:Number.isFinite(available)?available:null,
+  segmentEligible:markers.filter(x=>x.segment).length,
   locationPrecision:'next_stop_anchor_not_vehicle_position',
   caveat:'Chaque point indique le prochain arrêt déclaré pour une circulation SNCF, pas la position du train. Aucune localisation GPS de véhicule, vitesse ou trajet exact n’est fournie dans ce flux.',
   source:{updates:SNCF_TU_CREDIT,geo:SNCF_GEO_CREDIT}};
@@ -106,7 +135,7 @@ export function stationQuery(codes){
  const allowed=[...new Set(codes.filter(c=>/^\d{8}$/.test(c)))].slice(0,35);
  if(!allowed.length)return null;
  const url=new URL(SNCF_STATIONS_API);
- url.searchParams.set('select','code_uic,libelle,geo_point_2d');
+ url.searchParams.set('select','code_uic,libelle,code_ligne,geo_point_2d');
  url.searchParams.set('where','code_uic IN ('+allowed.map(c=>"'"+c+"'").join(',')+')');
  url.searchParams.set('limit','100');
  return url.toString();
