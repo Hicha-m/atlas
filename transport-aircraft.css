@@ -1,0 +1,40 @@
+
+.ac-page{max-width:1390px;margin:0 auto;color:#f0f6fc;min-width:0}
+.ac-top{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:19px}
+.ac-top a{color:#8fceff;text-decoration:underline;font-size:12px}
+.ac-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;background:linear-gradient(110deg,#16283a,#0d1925);border:1px solid #344d61;border-radius:18px;padding:32px}
+.ac-hero h1{font-size:clamp(27px,4vw,44px);margin:14px 0 10px}
+.ac-hero p{font-size:13px;color:#aec3d4;max-width:710px;line-height:1.7;margin:0}
+.ac-hero-icon{font-size:70px;color:#79bdf9}
+.ac-controls{display:flex;align-items:end;flex-wrap:wrap;gap:15px;background:#151b23;border:1px solid #3c4a59;border-radius:14px;margin:18px 0;padding:17px}
+.ac-controls>div{flex:1 1 220px;min-width:200px}
+.ac-controls label:not(.ac-ground){display:block;margin-bottom:8px;color:#bbcbda;font-size:12px}
+.ac-controls select{height:43px;min-width:200px;width:100%;padding:0 12px;background:#0c141d;border:1px solid #465a70;border-radius:8px;color:#f4fbff}
+.ac-controls button{border:1px solid #579ed1;background:#28577c;color:#fff;border-radius:9px;padding:11px 15px;min-height:43px;cursor:pointer;font-weight:650}
+.ac-controls button:disabled{opacity:.5;cursor:wait}
+.ac-ground{display:flex;gap:8px;align-items:center;font-size:12px;color:#b3cadb;padding:11px 0;cursor:pointer}
+.ac-disclaimer{background:#182a3a;border-left:3px solid #649dc1;padding:12px 15px;font-size:12px;color:#b5c8d7;line-height:1.6;border-radius:6px}
+.ac-status{font-size:12px;color:#9eb8cc;margin:15px 0;min-height:18px}
+.ac-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(285px,.8fr);gap:14px;align-items:stretch}
+.ac-map{height:590px;background:#172737;border:1px solid #3b5263;border-radius:15px;min-width:0;overflow:hidden}
+.ac-side{background:#151b23;border:1px solid #3b4959;border-radius:15px;min-width:0;padding:18px;display:flex;flex-direction:column;gap:13px;max-height:590px}
+.ac-side-title{display:flex;justify-content:space-between;align-items:center}
+.ac-side-title h2{font-size:17px;margin:0}
+.ac-side-title span{color:#9ec7e0;font-size:12px}
+.ac-selected{padding:15px;background:#0f1b28;border:1px solid #344b60;border-radius:10px}
+.ac-selected h3{font-size:17px;margin:0 0 13px}
+.ac-selected p{font-size:12px;color:#aabaca;margin:0}
+.ac-selected dl{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ac-selected dl div{min-width:0}
+.ac-selected dt{font-size:10px;color:#90a8bc}
+.ac-selected dd{font-size:12px;margin:5px 0 0;overflow-wrap:anywhere}
+.ac-list{overflow-y:auto;min-height:120px;flex:1;display:flex;flex-direction:column;gap:7px}
+.ac-aircraft{display:flex;flex-direction:column;text-align:left;gap:6px;border:1px solid #334657;background:#192735;color:#dceefa;padding:12px;border-radius:9px;cursor:pointer}
+.ac-aircraft:hover,.ac-aircraft.active{border-color:#76b8e9;background:#25405b}
+.ac-aircraft strong{font-size:13px}
+.ac-aircraft small,.ac-aircraft span{font-size:11px;color:#a2bdcf}
+.ac-empty{font-size:12px;color:#a6b9c9;line-height:1.6}
+.ac-source{font-size:12px;color:#8eacc0;line-height:1.65;margin-top:17px}
+.ac-source a{color:#8dd3ff;text-decoration:underline}
+@media(max-width:960px){.ac-layout{grid-template-columns:1fr}.ac-map{height:430px}.ac-side{max-height:none}.ac-list{max-height:300px}}
+@media(max-width:600px){.ac-hero{padding:23px}.ac-hero-icon{display:none}.ac-map{height:330px}.ac-controls{flex-direction:column;align-items:stretch}.ac-controls>div{min-width:0;flex:auto}.ac-controls select{min-width:0}.ac-selected dl{grid-template-columns:1fr 1fr}}

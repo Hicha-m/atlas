@@ -52,6 +52,7 @@ function nav(){
    regionLink('#/transport/bus','🚌 Bus',root==='transport'&&section==='bus')+
    regionLink('#/transport/bateaux','⛴️ Bateaux',root==='transport'&&section==='bateaux')+
    regionLink('#/transport/telepheriques','🚠 Téléphériques',root==='transport'&&section==='telepheriques')+
+   regionLink('#/transport/avions','✈️ Avions',root==='transport'&&section==='avions')+
    regionLink('#/transport/trafic','⚠️ Info trafic',root==='transport'&&section==='trafic')+
    regionLink('#/transport/catalogue','▤ Sources & catalogue',root==='transport'&&section==='catalogue')+'</div>';
   if(name==='electricity')return item+'<div class="atlas-region-links">'+
@@ -101,7 +102,11 @@ function render(){
  }else if(root==='transport'){
    const page=id.split('/')[1]||'overview';
    $('#app').innerHTML='<div class="panel" role="status">Chargement des transports…</div>';
-   if(page==='catalogue'){
+   if(page==='avions'){
+    import('./transport-aircraft.js').then(module=>{
+     if(location.hash==='#/transport/avions'&&$('#app'))transportDispose=module.mountAircraft($('#app'));
+    }).catch(error=>{if(location.hash==='#/transport/avions')$('#app').innerHTML='<div class="panel" role="alert">Aviation indisponible : '+safe(error.message)+'</div>';});
+   }else if(page==='catalogue'){
     import('./transport.js').then(module=>{
      if((location.hash==='#/transport/catalogue')&&$('#app'))transportDispose=module.mountTransport($('#app'));
     }).catch(error=>{if(location.hash==='#/transport/catalogue')$('#app').innerHTML='<div class="panel" role="alert">Catalogue indisponible : '+safe(error.message)+'</div>';});
