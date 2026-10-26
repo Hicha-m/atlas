@@ -1,6 +1,6 @@
 import {
  normalizeSwiss,normalizeTfLArrivals,normalizeTfLSearch,normalizeTfLStatus,
- decodeSncfGtfsRt,normalizeSncfBoard,decodeGtfsServiceAlerts
+ decodeSncfGtfsRt,normalizeSncfBoard,decodeGtfsServiceAlerts,normalizeSwissConnections
 } from '../transport-live-data.js';
 import {MARSEILLE_API,MARSEILLE_SOURCE,normalizeMarseilleAlerts} from '../transport-marseille-data.js';
 
@@ -39,6 +39,30 @@ export default async function handler(req,res){
     caveat:'Retards/projections uniquement lorsque renseignés par le réseau. Aucun suivi GPS.',
     source:'https://transport.opendata.ch/docs.html'};
    cache='public, max-age=20, s-maxage=30, stale-while-revalidate=30';
+  }else if(type==='swiss-connections'){
+   const from=text(req.query?.from),to=text(req.query?.to);
+   const date=text(req.query?.date),time=text(req.query?.time);
+   if(from.length<2||to.length<2||from.toLocaleLowerCase()===to.toLocaleLowerCase()||
+      (date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))||
+      (time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)))
+    return res.status(400).json({error:'Départ, destination, date ou heure invalide'});
+   const url=new URL('https://transport.opendata.ch/v1/connections');
+   url.searchParams.set('from',from);url.searchParams.set('to',to);url.searchParams.set('limit','6');
+   if(date)url.searchParams.set('date',date);
+   if(time)url.searchParams.set('time',time);
+   const json=await readUpstream(url.toString());
+   response={provider:'Swiss Transport API',journeys:normalizeSwissConnections(json),fetchedAt:new Date().toISOString(),
+     source:'https://transport.opendata.ch/docs.html',
+     caveat:'Itinéraires calculés à partir des horaires publiés. Retards uniquement lorsqu’ils sont présents ; aucune position GPS déduite.'};
+   cache='public, max-age=30, s-maxage=90, stale-while-revalidate=45';
+  }else if(type==='tfl-stop'){
+   if(!(/^[A-Za-z0-9-]{5,42}$/.test(id)))return res.status(400).json({error:'Arrêt invalide'});
+   const json=await readUpstream('https://api.tfl.gov.uk/StopPoint/'+encodeURIComponent(id));
+   const lat=Number(json?.lat),lng=Number(json?.lon);
+   response={station:String(json?.commonName||'').slice(0,140),
+     stationPosition:Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null,
+     provider:'Transport for London',fetchedAt:new Date().toISOString()};
+   cache='public, max-age=60, s-maxage=1800, stale-while-revalidate=300';
   }else if(type==='tfl'){
    if(!TFL_MODES.has(mode)||!(/^[A-Za-z0-9-]{5,42}$/.test(id)))return res.status(400).json({error:'Mode ou arrêt invalide'});
    const json=await readUpstream('https://api.tfl.gov.uk/StopPoint/'+encodeURIComponent(id)+'/Arrivals');

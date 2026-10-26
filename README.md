@@ -51,6 +51,11 @@ consommation nationale, prévisions, production par huit filières,
 
 ## 🚆 Module 03 — Transports publics
 
+- Trajets **départ → destination → date/heure** via les connexions suisses ; la recherche d'itinéraires SNCF français demande encore la jonction de données GTFS statiques et GTFS-RT (aucune recherche fictive proposée).
+- Cartes d'arrêts géolocalisés pour les modes couverts ; tracés de segments de gares pour les trajets suisses, **sans marqueurs de véhicules GPS inventés**.
+- Favoris de lignes et alertes Marseille conservés sur l'appareil (localStorage) ; pas de notifications push.
+
+
 Entrée : [Explorer les transports](https://atlas-live-data-studio.vercel.app/#/transport). Les sous-sections séparées couvrent les trains, métros, trams, bus, bateaux, téléphériques et l'information trafic.
 
 - **France / SNCF :** GTFS-RT TripUpdates, suivi des trains par identifiants de course et d'arrêt ; correspondance vers les noms de gares encore partielle.

@@ -21,7 +21,11 @@ export function normalizeSwiss(payload,mode){
    detail:str(x.operator||'',110),realtime:delay!==null||Boolean(predicted&&predicted!==planned),
    mode:mode||'train',cancelled:false};
  }).filter(x=>x.expected||x.planned);
- return {station:str(payload?.station?.name||'',140),departures:board.sort((a,b)=>Date.parse(a.expected)-Date.parse(b.expected)).slice(0,45)};
+ const coord=payload?.station?.coordinate;
+ const lat=finite(coord?.x),lng=finite(coord?.y);
+ return {station:str(payload?.station?.name||'',140),
+ stationPosition:lat!==null&&lng!==null&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null,
+ departures:board.sort((a,b)=>Date.parse(a.expected)-Date.parse(b.expected)).slice(0,45)};
 }
 export function normalizeTfLArrivals(items){
  if(!Array.isArray(items))return {departures:[]};
@@ -219,4 +223,41 @@ export function decodeGtfsServiceAlerts(bytes,nowMs=Date.now()){
  }
  alerts.sort((a,b)=>Number(b.active)-Number(a.active));
  return {updated,alerts:alerts.slice(0,90),entities};
+}
+
+
+/* Swiss national connection search: real published journey legs and observed delay,
+ * stop geometries are points along scheduled itinerary, NOT moving train GPS.
+ */
+export function normalizeSwissConnections(payload){
+ const rows=Array.isArray(payload?.connections)?payload.connections:[];
+ const position=station=>{
+  const coordinate=station?.coordinate;
+  const lat=finite(coordinate?.x),lng=finite(coordinate?.y);
+  return lat!==null&&lng!==null&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null;
+ };
+ return rows.slice(0,12).map((connection,index)=>{
+  const departure=connection.from||{},arrival=connection.to||{};
+  const legs=(Array.isArray(connection.sections)?connection.sections:[]).map(section=>{
+   const journey=section.journey||{};
+   return {
+    line:str((journey.category||'')+' '+(journey.number||''),40).trim(),
+    name:str(journey.name,90),operator:str(journey.operator,90),
+    origin:str(section.departure?.station?.name||'',110),
+    destination:str(section.arrival?.station?.name||'',110),
+    from:iso(section.departure?.departure),
+    to:iso(section.arrival?.arrival),
+    delay:finite(section.departure?.delay),
+    stops:(Array.isArray(journey.passList)?journey.passList:[]).slice(0,65).map(p=>({
+      name:str(p.station?.name,110),position:position(p.station)
+    })).filter(p=>p.position)
+   };
+  });
+  return {id:str(index,10),origin:str(departure.station?.name,110),destination:str(arrival.station?.name,110),
+   departure:iso(departure.prognosis?.departure)||iso(departure.departure),
+   arrival:iso(arrival.prognosis?.arrival)||iso(arrival.arrival),
+   departureDelay:finite(departure.delay),arrivalDelay:finite(arrival.delay),
+   transfers:finite(connection.transfers),departurePosition:position(departure.station),
+   arrivalPosition:position(arrival.station),legs};
+ }).filter(c=>c.departure&&c.arrival);
 }
