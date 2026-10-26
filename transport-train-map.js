@@ -90,7 +90,8 @@ export function mountTrainMap(shell){
     '<div><small>PONCTUELS*</small><strong class="tm-good">'+(rate===null?'—':rate+' %')+'</strong></div>'+
     '<div><small>RETARDS*</small><strong class="tm-warning">'+(known.length?Math.round(late*100/known.length)+' %':'—')+'</strong></div></div>'+
     '<div class="tm-category-summary">'+['TER','TGV','Intercités','Train'].map(k=>'<span>'+typeName(k)+' <b>'+shown.filter(x=>x.kind===k).length+'</b></span>').join('')+'</div>'+
-    '<p class="tm-drawer-note">Trains recensés par le flux : '+(model.sourceTotal??'—')+' · repères obtenus : '+model.totalWithAnchors+'.</p>';
+    '<p class="tm-drawer-note">Trains recensés par le flux : '+(model.sourceTotal??'—')+' · repères obtenus : '+model.totalWithAnchors+'.</p>'+ '<div class="tm-pick-list"><span>Exemples de circulations</span>'+shown.slice(0,6).map(item=>'<button type="button" class="tm-pick-train" data-id="'+esc(item.id)+'">'+esc(item.kind)+' '+esc(item.number||'—')+' · '+esc(item.stationName)+'</button>').join('')+'</div>';
+   holder.querySelectorAll('.tm-pick-train').forEach(button=>button.onclick=()=>{selectedId=button.dataset.id;renderDrawer();});
    return;
   }
   const item=selectedItem();
