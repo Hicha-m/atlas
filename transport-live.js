@@ -1,3 +1,4 @@
+import {filterMarseilleAlerts,availableMarseilleFilters,MARSEILLE_SOURCE} from './transport-marseille-data.js';
 /* Actual departures: SNCF GTFS-RT (France), TfL (London), Swiss Transport API.
  * No fake realtime, no vehicle positions inferred from schedules.
  */
@@ -29,7 +30,7 @@ const minutes=iso=>iso&&Number.isFinite(Date.parse(iso))?Math.max(0,Math.ceil((D
 const keyOf=(page,provider)=>page+'-'+provider;
 function sourceLink(provider){
  const links={sncf:'https://transport.data.gouv.fr/datasets/horaires-sncf',
- swiss:'https://transport.opendata.ch/docs.html',tfl:'https://api.tfl.gov.uk/', 'tfl-status':'https://api.tfl.gov.uk/','marseille-alerts':'https://www.data.gouv.fr/datasets/information-trafic-en-temps-reel-affectant-les-reseaux-de-transports-en-commun-de-la-metropole-daix-marseille-provence'};
+ swiss:'https://transport.opendata.ch/docs.html',tfl:'https://api.tfl.gov.uk/', 'tfl-status':'https://api.tfl.gov.uk/','marseille-alerts':MARSEILLE_SOURCE};
  return '<a href="'+links[provider]+'" target="_blank" rel="noopener noreferrer">Consulter la source ↗</a>';
 }
 function overview(){
@@ -48,7 +49,8 @@ export function mountTransportLive(root,page='overview'){
  const storage=saved();
  const initialProvider=model.providers[0];
  const state={provider:initialProvider,station:'',name:'',query:'',results:[],data:null,error:'',loading:false,searching:false,
-  lastFetch:0,request:0,searchRequest:0,disposed:false,controllers:new Set(),timer:null};
+  lastFetch:0,request:0,searchRequest:0,disposed:false,controllers:new Set(),timer:null,
+  alertNetwork:'all',alertMode:'all',alertQuery:''};
  const init=provider=>{
   const key=keyOf(page,provider),preferred=storage[key];
   const fallback=PRESETS[page]?.[provider]?.[0];
@@ -91,13 +93,26 @@ export function mountTransportLive(root,page='overview'){
   '<section class="tl-results" id="tl-results" aria-live="off"></section>'+
   '<div class="tl-source"><div id="tl-source-description"></div><div id="tl-source-link"></div></div>'+
   '<p class="tl-foot">Actualisation automatique toutes les 90 secondes lorsque la page est ouverte. Mise en cache côté serveur et limites d’appels respectées.</p></div>';
-  el('#tl-provider').onchange=()=>{state.provider=el('#tl-provider').value;state.query='';state.results=[];state.error='';state.data=null;state.lastFetch=0;cancel();state.request++;init(state.provider);drawControls();draw();load(true);};
+  el('#tl-provider').onchange=()=>{state.provider=el('#tl-provider').value;state.query='';state.results=[];state.error='';state.data=null;state.lastFetch=0;state.alertNetwork='all';state.alertMode='all';state.alertQuery='';cancel();state.request++;init(state.provider);drawControls();draw();load(true);};
   el('#tl-refresh').onclick=()=>load(false);
  }
  function drawControls(){
   const place=el('#tl-stop-controls');
-  if(state.provider==='tfl-status'||state.provider==='marseille-alerts'){
-   place.innerHTML='<p class="tl-hint">'+(state.provider==='marseille-alerts'?'Alertes officielles publiées pour Marseille et la Métropole : elles ne contiennent pas les prochains départs.':'État des lignes de métro, DLR, Overground et tramway communiqué par Transport for London.')+'</p>';return;
+  if(state.provider==='marseille-alerts'){
+   const filters=availableMarseilleFilters(state.data?.alerts||[]);
+   const choices=(values,current)=>'<option value="all">Tous</option>'+values.map(value=>'<option value="'+esc(value)+'"'+(value===current?' selected':'')+'>'+esc(value)+'</option>').join('');
+   place.innerHTML='<div class="tl-alert-controls">'+
+    '<div class="tl-field"><label for="tl-alert-network">Réseau</label><select id="tl-alert-network">'+choices(filters.networks,state.alertNetwork)+'</select></div>'+
+    '<div class="tl-field"><label for="tl-alert-mode">Transport</label><select id="tl-alert-mode">'+choices(filters.modes,state.alertMode)+'</select></div>'+
+    '<div class="tl-field"><label for="tl-alert-search">Ligne, lieu ou perturbation</label><input type="search" id="tl-alert-search" placeholder="Ex. M1, tram, travaux…" value="'+esc(state.alertQuery)+'" maxlength="90"/></div></div>'+
+    '<p class="tl-hint">Bulletins des réseaux métropolitains, pas des prochains passages. Les dates affichées ne précisent pas toujours les heures de fonctionnement.</p>';
+   el('#tl-alert-network').onchange=()=>{state.alertNetwork=el('#tl-alert-network').value;draw();};
+   el('#tl-alert-mode').onchange=()=>{state.alertMode=el('#tl-alert-mode').value;draw();};
+   el('#tl-alert-search').oninput=()=>{state.alertQuery=el('#tl-alert-search').value;draw();};
+   return;
+  }
+  if(state.provider==='tfl-status'){
+   place.innerHTML='<p class="tl-hint">État des lignes de métro, DLR, Overground et tramway communiqué par Transport for London.</p>';return;
   }
   if(state.provider==='sncf'){
    place.innerHTML='<div class="tl-field"><label for="tl-query">Rechercher un train / code GTFS</label><input id="tl-query" placeholder="Numéro de train, identifiant de course ou d’arrêt" type="search" maxlength="70" value="'+esc(state.query)+'"/></div>'+
@@ -161,11 +176,18 @@ export function mountTransportLive(root,page='overview'){
   if(state.error&&!data){result.innerHTML='<div class="tl-wait tl-error" role="alert">Impossible de récupérer les passages pour ce réseau. Aucun horaire fictif n’est affiché. <button type="button" id="tl-retry">Réessayer</button></div>';el('#tl-retry').onclick=()=>load(true);return;}
   if(!data){result.innerHTML='<div class="tl-wait">Sélectionnez un arrêt valide.</div>';return;}
   const status=state.provider==='tfl-status',marseille=state.provider==='marseille-alerts';
-  const items=marseille?(data.alerts||[]):status?(data.statuses||[]):(data.departures||[]);
+  const items=marseille?filterMarseilleAlerts(data.alerts,{network:state.alertNetwork,mode:state.alertMode,query:state.alertQuery}):status?(data.statuses||[]):(data.departures||[]);
   result.innerHTML='<div class="tl-board-title"><div><span class="tl-kicker">RÉSULTATS FOURNIS PAR LE RÉSEAU</span><h2>'+esc(heading)+'</h2></div><span class="tl-count">'+items.length+' '+(marseille?'alertes':status?'lignes':'passages')+'</span></div>'+
-   ((data.feedUpdated||data.updated)?'<p class="tl-feed-time">Dernière mise à jour déclarée par le flux : '+esc(localTime(data.feedUpdated||data.updated,timeZone()))+'</p>':'')+
-   (!items.length?'<div class="tl-wait">'+(marseille?'Aucune alerte textuelle n’a été fournie par le flux. Cela ne garantit pas l’absence de perturbations.':'Aucun passage fourni pour cet arrêt et ce mode. Cela ne signifie pas que les transports ne circulent pas.')+'</div>':
-    marseille?'<div class="tl-status-grid">'+items.map(x=>'<article class="tl-status-card"><strong>'+esc(x.title||'Information voyageurs')+'</strong><span class="'+(x.active?'tl-issue':'tl-good')+'">'+(x.active?'Alerte en cours':'Alerte à venir / archivée')+'</span>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+(x.routes?.length?'<p>Lignes : '+esc(x.routes.join(', '))+'</p>':'')+(x.to?'<small>Fin annoncée : '+esc(localTime(x.to,timeZone()))+'</small>':'')+'</article>').join('')+'</div>':
+   ((data.feedUpdated||data.updated)?'<p class="tl-feed-time">Dernière mise à jour publiée : '+esc(localTime(data.feedUpdated||data.updated,timeZone()))+'</p>':'')+
+   (marseille&&data.partial?'<p class="tl-caveat">Certaines pages de la source ne sont pas disponibles ; liste partielle.</p>':'')+
+   (!items.length?'<div class="tl-wait">'+(marseille?'Aucune perturbation correspondant à ces filtres. Cela ne garantit pas l’absence de perturbations.':'Aucun passage fourni pour cet arrêt et ce mode. Cela ne signifie pas que les transports ne circulent pas.')+'</div>':
+    marseille?'<div class="tl-status-grid">'+items.map(x=>'<article class="tl-status-card"><strong>'+esc(x.title||'Information voyageurs')+'</strong><span class="'+(x.activity==='future'?'tl-good':'tl-issue')+'">'+(x.activity==='future'?'Prévue prochainement':'Période de validité en cours')+'</span>'+
+    (x.description?'<p>'+esc(x.description)+'</p>':'')+
+    (x.networks?.length?'<small>Réseaux : '+esc(x.networks.join(' · '))+'</small>':'')+
+    (x.routes?.length?'<small>Lignes : '+esc(x.routes.join(', '))+'</small>':'')+
+    (x.category?'<small>Catégorie : '+esc(x.category)+'</small>':'')+
+    (x.start||x.end?'<small>Validité : '+esc(x.start||'non précisée')+' au '+esc(x.end||'non précisée')+'</small>':'')+
+    (x.updated?'<small>Mis à jour : '+esc(localTime(x.updated,timeZone()))+'</small>':'')+'</article>').join('')+'</div>':
     status?'<div class="tl-status-grid">'+items.map(x=>'<article class="tl-status-card"><strong>'+esc(x.name)+'</strong><span class="'+(x.normal?'tl-good':'tl-issue')+'">'+esc(x.status)+'</span>'+(x.reason?'<p>'+esc(x.reason)+'</p>':'')+'</article>').join('')+'</div>':
     '<div class="tl-board">'+items.map(renderRow).join('')+'</div>')+
    (state.provider==='sncf'?'<p class="tl-caveat">La SNCF diffuse des prédictions par identifiants GTFS : nous n’associons pas arbitrairement ces codes à des noms de gares. Retard uniquement lorsqu’il est fourni par la source.</p>':'');
@@ -181,6 +203,7 @@ export function mountTransportLive(root,page='overview'){
   try{
    const json=await getJson(apiUrl(),token);if(!json||!alive())return;
    state.data=json;
+   if(state.provider==='marseille-alerts')drawControls();
   }catch(error){if(token===state.request&&alive()){state.error=error.name==='AbortError'?'Délai dépassé':error.message;state.data=null;}}
   finally{if(token===state.request&&alive()){state.loading=false;draw();}}
  }
