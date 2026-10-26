@@ -119,3 +119,11 @@
  .tm-legend{top:209px}
 }
 @media(max-width:385px){.tm-legend{top:214px}}
+
+.tm-estimate-info{padding:11px;margin:11px 0;background:#2f3440;border:1px solid #a78741;border-left:3px solid #ffce52;border-radius:9px;color:#e7d6a6}
+.tm-estimate-info strong{font-size:11px;color:#fff0bd;line-height:1.5}
+.tm-estimate-info p{font-size:10px;line-height:1.6;color:#d9c89e;margin:6px 0 9px}
+.tm-estimate-info button{padding:9px 11px;border:1px solid #a88646;background:#4b3d28;color:#ffe4a1;border-radius:7px;cursor:pointer;font-size:10px}
+.tm-no-estimate{font-size:10px;line-height:1.5;color:#a2bace;background:#243445;border-radius:8px;padding:9px 11px}
+@media(max-width:720px){.tm-legend{top:262px}}
+@media(max-width:385px){.tm-legend{top:267px}}
