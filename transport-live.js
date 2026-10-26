@@ -159,7 +159,8 @@ export function mountTransportLive(root,page='overview'){
   const status=d.cancelled?'<span class="tl-delay bad">Supprimé</span>':lag!==null?(lag>0?'<span class="tl-delay bad">+'+lag+' min</span>':lag<0?'<span class="tl-delay">Avance '+Math.abs(lag)+' min</span>':'<span class="tl-delay good">À l’heure</span>'):
    '<span class="tl-delay subtle">Retard non fourni</span>';
   const subtitle=d.stopId?'Arrêt GTFS : '+d.stopId:(d.platform?'Quai / arrêt : '+d.platform:'Arrêt non précisé');
-  return '<article class="tl-departure" aria-label="Départ '+(i+1)+'"><div class="tl-route"><span class="tl-line">'+esc(d.line||'Ligne inconnue')+'</span><div><strong>'+esc(d.destination||'Destination non renseignée')+'</strong><small>'+esc(d.station||state.name||'')+'</small></div></div>'+
+  const badge=state.provider==='sncf'?'🚄 Train SNCF':(page==='metros'?'🚇 ':page==='tramways'?'🚊 ':page==='bus'?'🚌 ':page==='bateaux'?'⛴️ ':'🚆 ')+(d.line||'Ligne');
+  return '<article class="tl-departure" aria-label="Départ '+(i+1)+'"><div class="tl-route"><span class="tl-line">'+esc(badge)+'</span><div><strong>'+esc(d.destination||'Destination non renseignée')+'</strong><small>'+esc(d.station||state.name||'')+'</small></div></div>'+
    '<div class="tl-departure-status"><span class="tl-time">'+clock+'</span><span class="tl-minute">'+(until!==null&&until<=180?'dans '+until+' min':'Horaire publié')+'</span></div>'+
    '<div class="tl-metadata">'+status+'<span>'+esc(subtitle)+'</span>'+(d.detail?'<small>'+esc(d.detail)+'</small>':'')+'</div></article>';
  }
