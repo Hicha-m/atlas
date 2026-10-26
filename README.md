@@ -66,6 +66,15 @@ Entrée : [Explorer les transports](https://atlas-live-data-studio.vercel.app/#/
 
 Les API sont consommées via des routes Vercel à destinations fixes, avec validation, délais et cache. Les données qui ne sont pas fournies (GPS, retards, heures exactes d'une perturbation) ne sont jamais estimées artificiellement. Un test automatisé avec données simulées ne garantit pas la disponibilité de chaque API externe en production.
 
+### ✈ Avions · Observations ADS-B
+
+La sous-section [Avions](https://atlas-live-data-studio.vercel.app/#/transport/avions) localise sur Leaflet les aéronefs dont les positions sont reçues par OpenSky dans quatre zones françaises (Marseille, Paris, Lyon, Toulouse).
+
+- Position, indicatif, altitude, vitesse, état au sol et horodatage affichés **uniquement lorsqu'ils sont fournis**.
+- Actualisation manuelle, cache CDN d'environ 15 minutes pour économiser les crédits OpenSky. Les points peuvent être différés ou manquer ; il ne s'agit pas d'un radar certifié pour la navigation.
+- Aucune trajectoire extrapolée, ETA, retard commercial ou destination de vol inventée.
+- Source et conditions : [OpenSky Network](https://opensky-network.org/) ; accès gratuit sous quotas et disponibilité variable.
+
 ## Démonstration
 
 🔗 **Site public :** https://atlas-live-data-studio-hichammed13-5976.vercel.app
