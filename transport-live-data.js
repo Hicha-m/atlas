@@ -100,8 +100,9 @@ function stopEvent(b){
  return x;
 }
 function stopUpdate(b){
- const x={stopId:'',arrive:null,depart:null,skip:false};
+ const x={stopId:'',sequence:null,arrive:null,depart:null,skip:false};
  for(const [f,w,v] of fields(b)){
+  if(f===1&&w===0)x.sequence=Number(v);
   if(f===4&&w===2)x.stopId=str(fieldString(v),130);
   if(f===2&&w===2)x.arrive=stopEvent(v);
   if(f===3&&w===2)x.depart=stopEvent(v);
@@ -124,7 +125,29 @@ function trainUpdate(b,nowMs){
  const next=options.sort((a,b)=>a.when-b.when)[0]||null;
  if(!next&&!trip.cancelled)return null;
  const delay=next?.delay??tripDelay;
+ // A time-bracket estimate can only be offered if the SAME TripUpdate contains
+ // a past departure and a subsequent future arrival. Most feeds omit past
+ // calls: in that case segment remains null, never fabricated.
+ let segment=null;
+ if(next&&sourceTime&&sourceTime>=nowMs-15*60000&&sourceTime<=nowMs+120000){
+  const prev=updates.map(stop=>({stop,when:stop.depart?.time??stop.arrive?.time??null}))
+   .filter(x=>!x.stop.skip&&x.stop.stopId&&x.when!==null&&
+    x.when<=nowMs&&x.when>=nowMs-150*60000&&
+    (!Number.isFinite(next.stop.sequence)||!Number.isFinite(x.stop.sequence)||
+      x.stop.sequence<next.stop.sequence)&&
+    x.stop.stopId!==next.stop.stopId)
+   .sort((a,b)=>b.when-a.when)[0];
+  if(prev&&next.when>nowMs&&next.when-prev.when>=2*60000&&next.when-prev.when<=150*60000){
+   segment={
+    fromStopId:prev.stop.stopId,toStopId:next.stop.stopId,
+    fromTime:new Date(prev.when).toISOString(),toTime:new Date(next.when).toISOString(),
+    progress:Math.round(((nowMs-prev.when)/(next.when-prev.when))*1000)/1000,
+    method:'gtfs_rt_time_bracket',isGps:false
+   };
+  }
+ }
  return {id:trip.id||trip.route,route:trip.route,stopId:next?.stop.stopId||'',
+  segment,
   expected:next?new Date(next.when).toISOString():null,
   delay:delay===null?null:Math.round(delay/60),
   sourceUpdated:sourceTime?new Date(sourceTime).toISOString():null,

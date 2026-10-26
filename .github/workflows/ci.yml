@@ -56,6 +56,9 @@ jobs:
           curl --fail --silent http://127.0.0.1:8765/transport-live-data.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-extras.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-train-map.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/transport-rail-lines-data.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/transport-train-estimate.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8765/api/rail-lines.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-train-map-data.js -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/transport-train-map.css -o /dev/null
           curl --fail --silent http://127.0.0.1:8765/api/train-map.js -o /dev/null

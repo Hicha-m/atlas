@@ -51,3 +51,13 @@ Le bouton Suivre enregistre seulement l'identifiant du train dans le localStorag
 ## Évolutions distinctes
 
 Pour afficher la vraie position mouvante des trains il faudrait un flux GTFS-RT VehiclePositions / SIRI VehicleMonitoring ; à défaut, une interpolation depuis les horaires statiques SNCF doit être annoncée comme estimée. Cette version n'interpole pas le rail, ne simule pas la vitesse, et ne prétend pas couvrir tous les trains français.
+
+## Tracés SNCF et estimation conditionnelle — 26 octobre
+
+- Le compteur tm-data-footer est repoussé de 76 px depuis le bord droit pour éviter les contrôles Leaflet en bas à droite.
+- L’option « Afficher les voies SNCF » charge à la demande des segments EXPLOITE du référentiel ODbL [Formes des lignes du RFN](https://data.sncf.com/explore/dataset/formes-des-lignes-du-rfn/). API /api/rail-lines, petit polygone autour du centre, pagination plafonnée et cache CDN d’un jour.
+- Le calque des voies représente une infrastructure officielle, PAS un itinéraire confirmé ni la position du train.
+- Une position jaune estimée est uniquement possible avec un ancien arrêt et un prochain arrêt du même train encadrant l’heure courante, un message GTFS récent, deux codes UIC géolocalisés sur une unique même ligne officielle, et une forme continue passant près des deux gares.
+- L’algorithme mesure la distance curviligne sur la ligne RFN entre les deux projections de gare puis applique le progrès horaire. Le résultat est une estimation basse confiance, jamais un GPS. Aucune projection si la correspondance est absente ou incertaine.
+- Le GTFS statique SNCF 2026 n’inclut pas shapes.txt. Les TripUpdates peuvent omettre les arrêts déjà passés. La disponibilité réelle de l’estimation n’est donc PAS garantie ; on conserve les repères de prochain arrêt.
+- Aucun mouvement animé automatiquement et aucune interpolation hors des bornes.
