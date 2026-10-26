@@ -32,6 +32,7 @@ export function mountTrainMap(shell){
    '<div id="tm-map" class="tm-map" role="application" aria-label="Carte interactive des prochains arrêts SNCF"></div>'+
    '<div class="tm-top-controls"><label class="tm-search"><span aria-hidden="true">⌕</span><input type="search" id="tm-search" placeholder="Gare, ville, numéro du train…" aria-label="Chercher un train ou une gare" maxlength="90" autocomplete="off"/></label>'+
      '<div class="tm-quick-actions"><button id="tm-france" type="button">🇫🇷 France</button><button id="tm-marseille" type="button">📍 Marseille</button><button id="tm-refresh" type="button" title="Actualiser le flux SNCF">↻ Actualiser</button></div>'+
+     '<div class="tm-infrastructure-controls"><label><input id="tm-rails" type="checkbox"/> Afficher les voies SNCF</label><button type="button" id="tm-rails-reload" title="Recharger les voies autour du centre" hidden>↻ Tracés</button><span id="tm-rails-status" role="status">Tracés du réseau disponibles à la demande.</span></div>'+
      '<div class="tm-filter-buttons" aria-label="Filtres de trains"><button type="button" data-kind="all" class="active">Tous</button><button type="button" data-kind="TER">TER</button><button type="button" data-kind="TGV">TGV</button><button type="button" data-kind="Intercités">Intercités</button><button type="button" data-kind="Train">Autres</button></div>'+
      '<div class="tm-filter-buttons" aria-label="Filtres de ponctualité"><button type="button" data-status="all" class="active">Tous les statuts</button><button type="button" data-status="ontime"><i class="tm-led green"></i> À l’heure</button><button type="button" data-status="late"><i class="tm-led red"></i> En retard</button><button type="button" data-status="unknown"><i class="tm-led gray"></i> Inconnu</button><button type="button" data-status="cancelled">Supprimé</button></div>'+
    '</div>'+
@@ -47,10 +48,10 @@ export function mountTrainMap(shell){
  '</div>'+
  '<div class="tm-state" id="tm-state" role="status" aria-live="polite"></div>'+
  '<p class="tm-explanation"><strong>À quoi correspondent les points ?</strong> Chaque cercle représente une ou plusieurs circulations dont le prochain arrêt déclaré est cette gare. Le point ne se trouve pas nécessairement sur le train. Les statuts proviennent des écarts GTFS-RT ; « inconnu » signifie qu’aucun retard n’a été communiqué. * Les statistiques de ponctualité ne comptent que les circulations dont le retard est renseigné.</p>'+
- '<p class="tm-provenance">Sources : <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener noreferrer">SNCF · GTFS-RT TripUpdates</a> et <a href="https://data.sncf.com/explore/dataset/liste-des-gares/" target="_blank" rel="noopener noreferrer">SNCF Réseau · Liste des gares (UIC)</a>. Données ouvertes sous conditions de réutilisation, dont ODbL.</p>';
+ '<p class="tm-provenance">Sources : <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener noreferrer">SNCF · GTFS-RT TripUpdates</a> et <a href="https://data.sncf.com/explore/dataset/liste-des-gares/" target="_blank" rel="noopener noreferrer">SNCF Réseau · Liste des gares (UIC)</a> et <a href="https://data.sncf.com/explore/dataset/formes-des-lignes-du-rfn/" target="_blank" rel="noopener noreferrer">SNCF Réseau · Géométrie des voies</a>. Données ouvertes sous conditions de réutilisation, dont ODbL.</p>';
  tabs.insertAdjacentElement('afterend',panel);
  const $=selector=>panel.querySelector(selector);
- let alive=true,visible=false,loaded=false,loading=false,lastFetch=0,abort=null,timer=null,map=null,points=null;
+ let alive=true,visible=false,loaded=false,loading=false,lastFetch=0,abort=null,timer=null,map=null,points=null,railLayer=null,railAbort=null,railOn=false,railLoading=false;
  let model={markers:[],counts:{ontime:0,late:0,unknown:0,cancelled:0},feedUpdated:null};
  let kind='all',status='all',query='',selectedId=null,selectedStation=null,isolatedId=null;
  const isAlive=()=>alive&&panel.isConnected;
@@ -150,8 +151,41 @@ export function mountTrainMap(shell){
    maxZoom:18
   }).addTo(map);
   L.control.zoom({position:'bottomright'}).addTo(map);
+  // Rail geometry must remain below train stop-anchor markers.
+  map.createPane('tm-railway-geometry').style.zIndex='350';
+  map.getPane('tm-railway-geometry').style.pointerEvents='none';
+  railLayer=L.layerGroup().addTo(map);
   points=L.layerGroup().addTo(map);
   setTimeout(()=>map.invalidateSize(),35);
+ }
+ async function loadRails(){
+  if(!map||!railOn||railLoading||!isAlive())return;
+  railAbort?.abort();railAbort=new AbortController();
+  railLoading=true;$('#tm-rails-reload').disabled=true;
+  $('#tm-rails-status').textContent='Chargement des voies officielles SNCF autour du centre…';
+  try{
+   const center=map.getCenter();
+   // Fixed small bounding box: bounded upstream work regardless of map size.
+   const south=Math.max(41,center.lat-.48),north=Math.min(52,center.lat+.48);
+   const west=Math.max(-6,center.lng-.7),east=Math.min(11,center.lng+.7);
+   if(south>=north||west>=east)throw Error('Déplacez la carte vers la France.');
+   const params=new URLSearchParams({south:String(south),north:String(north),west:String(west),east:String(east)});
+   const resp=await fetch('/api/rail-lines?'+params,{signal:railAbort.signal});
+   const data=await resp.json();
+   if(!resp.ok)throw Error(data.error||'Source SNCF indisponible');
+   if(!isAlive()||!railOn)return;
+   railLayer.clearLayers();
+   for(const item of data.lines||[]){
+    if(!Array.isArray(item.coordinates)||item.coordinates.length<2)continue;
+    L.polyline(item.coordinates,{pane:'tm-railway-geometry',color:'#266f99',weight:2.6,
+      opacity:.72,interactive:false,smoothFactor:1}).addTo(railLayer);
+   }
+   $('#tm-rails-status').textContent=(data.lines||[]).length+' segments d’infrastructure · SNCF Réseau'+
+     (data.partial?' · données partielles':'')+' · pas des trajectoires de trains.';
+  }catch(error){
+   if(error.name!=='AbortError'&&isAlive())$('#tm-rails-status').textContent=
+    'Tracés indisponibles : '+error.message+' · repères de gares conservés.';
+  }finally{railLoading=false;if(isAlive())$('#tm-rails-reload').disabled=false;}
  }
  async function refresh({manual=false}={}){
   if(!visible||loading||!isAlive())return;
@@ -195,6 +229,13 @@ export function mountTrainMap(shell){
  $('#tm-france').onclick=()=>map?.setView([46.7,2.25],6);
  $('#tm-marseille').onclick=()=>map?.setView([43.45,5.3],9);
  $('#tm-refresh').onclick=()=>refresh({manual:true});
+ $('#tm-rails').onchange=()=>{
+  railOn=$('#tm-rails').checked;
+  $('#tm-rails-reload').hidden=!railOn;
+  if(!railOn){railAbort?.abort();railLayer?.clearLayers();$('#tm-rails-status').textContent='Tracés masqués.';}
+  else loadRails();
+ };
+ $('#tm-rails-reload').onclick=loadRails;
  $('#tm-search').oninput=event=>{query=event.target.value.trim();selectedId=null;isolatedId=null;redraw();};
  panel.querySelectorAll('[data-kind]').forEach(button=>button.onclick=()=>{
   kind=button.dataset.kind;panel.querySelectorAll('[data-kind]').forEach(b=>b.classList.toggle('active',b===button));redraw();
@@ -203,5 +244,5 @@ export function mountTrainMap(shell){
   status=button.dataset.status;panel.querySelectorAll('[data-status]').forEach(b=>b.classList.toggle('active',b===button));redraw();
  });
  timer=setInterval(()=>{if(visible&&!document.hidden&&!loading&&Date.now()-lastFetch>=115000)refresh();},120000);
- return ()=>{alive=false;clearInterval(timer);abort?.abort();map?.remove();panel.remove();tabs.remove();shell.classList.remove('tm-map-visible');};
+ return ()=>{alive=false;clearInterval(timer);abort?.abort();railAbort?.abort();map?.remove();panel.remove();tabs.remove();shell.classList.remove('tm-map-visible');};
 }
