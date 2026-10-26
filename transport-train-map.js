@@ -1,3 +1,4 @@
+import {estimateRailPosition} from './transport-train-estimate.js';
 /**
  * SNCF network view inside the existing Trains page (not a sidebar module).
  *
@@ -51,7 +52,7 @@ export function mountTrainMap(shell){
  '<p class="tm-provenance">Sources : <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener noreferrer">SNCF · GTFS-RT TripUpdates</a> et <a href="https://data.sncf.com/explore/dataset/liste-des-gares/" target="_blank" rel="noopener noreferrer">SNCF Réseau · Liste des gares (UIC)</a> et <a href="https://data.sncf.com/explore/dataset/formes-des-lignes-du-rfn/" target="_blank" rel="noopener noreferrer">SNCF Réseau · Géométrie des voies</a>. Données ouvertes sous conditions de réutilisation, dont ODbL.</p>';
  tabs.insertAdjacentElement('afterend',panel);
  const $=selector=>panel.querySelector(selector);
- let alive=true,visible=false,loaded=false,loading=false,lastFetch=0,abort=null,timer=null,map=null,points=null,railLayer=null,railAbort=null,railOn=false,railLoading=false;
+ let alive=true,visible=false,loaded=false,loading=false,lastFetch=0,abort=null,timer=null,map=null,points=null,railLayer=null,railAbort=null,railOn=false,railLoading=false,estimateLayer=null,railLines=[];
  let model={markers:[],counts:{ontime:0,late:0,unknown:0,cancelled:0},feedUpdated:null};
  let kind='all',status='all',query='',selectedId=null,selectedStation=null,isolatedId=null;
  const isAlive=()=>alive&&panel.isConnected;
@@ -78,6 +79,20 @@ export function mountTrainMap(shell){
   writeFavorites(has?f.filter(x=>x!==item.id):[...f,item.id]);
   renderDrawer();
  }
+ function renderEstimate(){
+  if(!estimateLayer)return;
+  estimateLayer.clearLayers();
+  const item=selectedItem();
+  if(!railOn||!item?.segment)return;
+  const point=estimateRailPosition(item.segment,railLines);
+  if(!point)return;
+  L.circleMarker([point.lat,point.lng],{
+   radius:10,weight:3,color:'#fff3ba',fillColor:'#ffce52',fillOpacity:.95,
+   dashArray:'3,4'
+  }).addTo(estimateLayer).bindTooltip(
+   'Estimation horaire sur les voies SNCF · pas une position GPS',
+   {direction:'top'});
+ }
  function renderDrawer(){
   const holder=$('#tm-drawer-content');
   if(!selectedId){
@@ -93,6 +108,7 @@ export function mountTrainMap(shell){
     '<div class="tm-category-summary">'+['TER','TGV','Intercités','Train'].map(k=>'<span>'+typeName(k)+' <b>'+shown.filter(x=>x.kind===k).length+'</b></span>').join('')+'</div>'+
     '<p class="tm-drawer-note">Trains recensés par le flux : '+(model.sourceTotal??'—')+' · repères obtenus : '+model.totalWithAnchors+'.</p>'+ '<div class="tm-pick-list"><span>Exemples de circulations</span>'+shown.slice(0,6).map(item=>'<button type="button" class="tm-pick-train" data-id="'+esc(item.id)+'">'+esc(item.kind)+' '+esc(item.number||'—')+' · '+esc(item.stationName)+'</button>').join('')+'</div>';
    holder.querySelectorAll('.tm-pick-train').forEach(button=>button.onclick=()=>{selectedId=button.dataset.id;renderDrawer();});
+   if(estimateLayer)estimateLayer.clearLayers();
    return;
   }
   const item=selectedItem();
@@ -108,6 +124,12 @@ export function mountTrainMap(shell){
    '<div><small>RETARD COMMUNIQUÉ</small><strong>'+ (item.delay===null?'Non renseigné':item.delay>0?'+'+item.delay+' min':item.delay<0?item.delay+' min':'0 min')+'</strong></div>'+
    '<div><small>DERNIÈRE MISE À JOUR COURSE</small><strong>'+formatDate(item.updatedAt)+'</strong></div></div>'+
    '<p class="tm-location-caveat">📍 Repère sur la gare du prochain arrêt. Ce point n’est pas la position GPS du train.</p>'+
+   (item.segment?('<div class="tm-estimate-info"><strong>Estimation horaire possible · '+esc(item.segment.fromName)+' → '+esc(item.segment.toName)+'</strong>'+
+     '<p>'+ (railOn&&estimateRailPosition(item.segment,railLines)?
+       'Un cercle jaune sur les voies représente une estimation horaire, jamais une observation GPS.':
+       'La géométrie de ce tronçon doit être chargée et confirmée pour afficher une position estimée.')+'</p>'+
+     '<button type="button" id="tm-estimate-action">⌖ Tester une estimation sur les voies</button></div>'):
+     '<p class="tm-no-estimate">Position estimée indisponible : la source ne fournit pas les deux arrêts et horaires vérifiables nécessaires.</p>')+
    (neighbors.length>1?'<div class="tm-neighbors">Autres trains vers cette gare : '+neighbors.slice(0,8).map(x=>'<button data-train-id="'+esc(x.id)+'" type="button">'+esc(x.kind)+' '+esc(x.number||'')+'</button>').join('')+'</div>':'')+
    '<div class="tm-detail-actions"><button type="button" id="tm-center">⌖ Centrer</button><button type="button" id="tm-isolate">'+(isolatedId?'◧ Tous les trains':'◎ Isoler')+'</button><button type="button" id="tm-follow">'+(followed?'★ Suivi enregistré':'☆ Suivre')+'</button></div>'+
    '<details class="tm-technical"><summary>Identification technique</summary><code>'+esc(item.id)+'</code><p>Source : SNCF GTFS-RT ; arrêt UIC '+esc(item.stopCode)+'</p></details>'+
@@ -116,8 +138,17 @@ export function mountTrainMap(shell){
   holder.querySelector('#tm-center').onclick=()=>{if(map)map.setView([item.lat,item.lng],Math.max(map.getZoom(),10));};
   holder.querySelector('#tm-isolate').onclick=()=>{isolatedId=isolatedId?null:item.id;redraw();};
   holder.querySelector('#tm-follow').onclick=()=>follow(item);
+  const estimateButton=holder.querySelector('#tm-estimate-action');
+  if(estimateButton)estimateButton.onclick=()=>{
+   if(!map||!item.segment)return;
+   railOn=true;$('#tm-rails').checked=true;$('#tm-rails-reload').hidden=false;
+   const {from,to}=item.segment;
+   map.fitBounds([[from.lat,from.lng],[to.lat,to.lng]],{maxZoom:10,padding:[90,90]});
+   loadRails();
+  };
   holder.querySelector('#tm-view-all').onclick=()=>{selectedId=null;isolatedId=null;redraw();};
   holder.querySelectorAll('[data-train-id]').forEach(b=>b.onclick=()=>{selectedId=b.dataset.trainId;renderDrawer();});
+  renderEstimate();
  }
  function drawPoints(){
   if(!map||!points)return;
@@ -156,6 +187,9 @@ export function mountTrainMap(shell){
   map.getPane('tm-railway-geometry').style.pointerEvents='none';
   railLayer=L.layerGroup().addTo(map);
   points=L.layerGroup().addTo(map);
+  // Separate yellow halo is strictly optional and never calculated without
+  // both temporal brackets and an official on-track geometry match.
+  estimateLayer=L.layerGroup().addTo(map);
   setTimeout(()=>map.invalidateSize(),35);
  }
  async function loadRails(){
@@ -174,14 +208,16 @@ export function mountTrainMap(shell){
    const data=await resp.json();
    if(!resp.ok)throw Error(data.error||'Source SNCF indisponible');
    if(!isAlive()||!railOn)return;
+   railLines=data.lines||[];
    railLayer.clearLayers();
    for(const item of data.lines||[]){
     if(!Array.isArray(item.coordinates)||item.coordinates.length<2)continue;
     L.polyline(item.coordinates,{pane:'tm-railway-geometry',color:'#266f99',weight:2.6,
       opacity:.72,interactive:false,smoothFactor:1}).addTo(railLayer);
    }
-   $('#tm-rails-status').textContent=(data.lines||[]).length+' segments d’infrastructure · SNCF Réseau'+
+   $('#tm-rails-status').textContent=railLines.length+' segments d’infrastructure · SNCF Réseau'+
      (data.partial?' · données partielles':'')+' · pas des trajectoires de trains.';
+   renderDrawer();
   }catch(error){
    if(error.name!=='AbortError'&&isAlive())$('#tm-rails-status').textContent=
     'Tracés indisponibles : '+error.message+' · repères de gares conservés.';
@@ -232,7 +268,7 @@ export function mountTrainMap(shell){
  $('#tm-rails').onchange=()=>{
   railOn=$('#tm-rails').checked;
   $('#tm-rails-reload').hidden=!railOn;
-  if(!railOn){railAbort?.abort();railLayer?.clearLayers();$('#tm-rails-status').textContent='Tracés masqués.';}
+  if(!railOn){railAbort?.abort();railLines=[];railLayer?.clearLayers();estimateLayer?.clearLayers();$('#tm-rails-status').textContent='Tracés masqués.';renderDrawer();}
   else loadRails();
  };
  $('#tm-rails-reload').onclick=loadRails;
