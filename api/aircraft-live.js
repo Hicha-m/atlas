@@ -33,6 +33,40 @@ export function normalizeAircraftStates(payload,{now=Date.now(),max=240}={}){
  return {observedAt:Number.isFinite(time)&&time>0?new Date(time*1000).toISOString():null,
   aircraft:aircraft.slice(0,max),totalObserved:aircraft.length};
 }
+
+/* Public adsb.lol (ODbL 1.0) fallback for temporary OpenSky unavailability.
+ * ADS-B altitude is in feet and groundspeed in knots: convert before display.
+ */
+export function normalizeAdsbLolStates(payload,{now=Date.now(),max=240}={}){
+ const records=Array.isArray(payload?.ac)?payload.ac:[];
+ const capture=Number(payload?.now),at=Number.isFinite(capture)&&capture>0?capture:now;
+ const aircraft=records.slice(0,4000).map(x=>{
+  if(!x||typeof x!=='object')return null;
+  const lat=finite(x.lat),lng=finite(x.lon),elapsed=finite(x.seen_pos);
+  if(lat===null||lng===null||elapsed===null||elapsed>240||elapsed<0||Math.abs(lat)>90||Math.abs(lng)>180)return null;
+  const altFeet=finite(x.alt_geom)??finite(x.alt_baro);
+  const speedKt=finite(x.gs);
+  return {
+   icao24:bounded(x.hex,20).toLowerCase(),callsign:bounded(x.flight,18)||null,
+   originCountry:'Non communiqué',lat,lng,
+   observedAt:new Date(at-elapsed*1000).toISOString(),ageSeconds:Math.round(elapsed),
+   altitudeM:altFeet===null?null:Math.round(altFeet*0.3048),
+   speedMs:speedKt===null?null:speedKt*0.514444,
+   headingDeg:finite(x.track),onGround:x.alt_baro==='ground',
+   verticalRateMs:finite(x.baro_rate)===null?null:finite(x.baro_rate)*0.3048/60,
+   squawk:bounded(x.squawk,12)||null
+  };
+ }).filter(x=>x&&/^[a-f0-9]{6}$/.test(x.icao24));
+ return {observedAt:new Date(at).toISOString(),aircraft:aircraft.slice(0,max),totalObserved:aircraft.length};
+}
+async function readLimited(url,timeoutMs){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+ try{
+  const response=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}});
+  if(!response.ok)throw Error('Fournisseur HTTP '+response.status);
+  return await response.json();
+ }finally{clearTimeout(timer);}
+}
 export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method!=='GET'){res.setHeader('Allow','GET');return res.status(405).json({error:'Méthode non autorisée'});}
@@ -41,21 +75,32 @@ export default async function handler(req,res){
  const [lamin,lomin,lamax,lomax]=chosen.bbox;
  const url=new URL('https://opensky-network.org/api/states/all');
  for(const [key,val] of Object.entries({lamin,lomin,lamax,lomax}))url.searchParams.set(key,String(val));
- const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),11500);
+ let clean=null,provider='',source='';
  try{
-  const upstream=await fetch(url,{signal:ctl.signal,headers:{Accept:'application/json'}});
-  if(!upstream.ok)throw Error('OpenSky '+upstream.status);
-  const data=await upstream.json();
-  if(!Array.isArray(data?.states))throw Error('État des avions non disponible');
-  const clean=normalizeAircraftStates(data);
+  try{
+   const data=await readLimited(url,4800);
+   if(!Array.isArray(data?.states))throw Error('Source OpenSky sans positions');
+   clean=normalizeAircraftStates(data);
+   provider='OpenSky Network';source='https://opensky-network.org/';
+  }catch{
+   // A fixed, modest radius around the selected region; never an open proxy.
+   const centres={
+    marseille:[43.3,5.37],paris:[48.85,2.35],lyon:[45.76,4.84],toulouse:[43.6,1.44]
+   };
+   const [lat,lng]=centres[zone];
+   const backup='https://api.adsb.lol/v2/lat/'+lat+'/lon/'+lng+'/dist/125';
+   const data=await readLimited(backup,5400);
+   if(!Array.isArray(data?.ac))throw Error('Source ADSB.lol sans positions');
+   clean=normalizeAdsbLolStates(data);
+   provider='adsb.lol (ODbL 1.0)';source='https://www.adsb.lol/';
+  }
   res.setHeader('Cache-Control','public, max-age=60, s-maxage=900, stale-while-revalidate=120');
   return res.status(200).json({
-   ...clean,zone,zoneName:chosen.name,provider:'OpenSky Network',
+   ...clean,zone,zoneName:chosen.name,provider,source,
    fetchedAt:new Date().toISOString(),
-   caveat:'Positions ADS-B observées ; elles peuvent être absentes, différées ou incomplètes. Aucun itinéraire ni retard déduit.',
-   source:'https://opensky-network.org/'});
- }catch(error){
+   caveat:'Positions ADS-B observées par '+provider+'. Elles peuvent être absentes, différées ou incomplètes ; aucun retard, destination ni itinéraire déduit.'});
+ }catch{
   res.setHeader('Cache-Control','no-store');
-  return res.status(502).json({error:error.name==='AbortError'?'Délai OpenSky dépassé':'Positions aériennes temporairement indisponibles'});
- }finally{clearTimeout(timer);}
+  return res.status(502).json({error:'Positions aériennes temporairement indisponibles auprès des fournisseurs'});
+ }
 }
