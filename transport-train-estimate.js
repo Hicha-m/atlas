@@ -56,7 +56,7 @@ export function estimateRailPosition(segment,railLines){
  const pct=Number(progress);
  const fromAt=Date.parse(fromTime||''),toAt=Date.parse(toTime||'');
  const direct=distanceMeters(from,to);
- if(!/^\\d{6}$/.test(String(lineCode||''))||!Number.isFinite(pct)||
+ if(!/^\d{6}$/.test(String(lineCode||''))||!Number.isFinite(pct)||
   pct<=0||pct>=1||
   !Number.isFinite(fromAt)||!Number.isFinite(toAt)||toAt-fromAt<120000||
   toAt-fromAt>150*60000||
