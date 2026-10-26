@@ -15,8 +15,11 @@ async function fixtures(page){
   if(provider==='tfl')return route.fulfill({json:{
    station:'Waterloo',provider:'Transport for London',fetchedAt:fetched(),
    departures:[{id:'tfl-a',line:'Northern',mode:'tube',destination:'Morden',station:'Waterloo',expected:future(),delay:null,platform:'Southbound'}]}});
-  if(provider==='marseille-alerts')return route.fulfill({json:{provider:'La Métropole Mobilité',fetchedAt:fetched(),updated:fetched(),
-   alerts:[{title:'Service perturbé',description:'Travaux sur la ligne',routes:['RTM:M1'],active:true}]}});
+  if(provider==='marseille-alerts')return route.fulfill({json:{provider:'Métropole Aix-Marseille-Provence · Open Data',fetchedAt:fetched(),updated:fetched(),partial:false,
+   alerts:[
+    {id:'m1',title:'Métro M1 · circulation perturbée',description:'Travaux sur la ligne',routes:['M1'],networks:['Marseille (RTM)'],modes:['METRO'],activity:'current',start:'2026-10-26',end:'2026-11-05',category:'TRAVAUX',updated:fetched()},
+    {id:'b3',title:'Ligne 3 · arrêt déplacé',description:'Travaux à Aix',routes:['3'],networks:['Aix lebus'],modes:['BUS'],activity:'future',start:'2026-10-28',end:'2026-11-05',category:'TRAVAUX'}
+   ]}});
   if(provider==='tfl-status')return route.fulfill({json:{provider:'Transport for London',fetchedAt:fetched(),
    statuses:[{id:'northern',name:'Northern',status:'Good Service',normal:true},{id:'district',name:'District',status:'Severe Delays',reason:'Incident',normal:false}]}});
   return route.fulfill({status:502,json:{error:'Not available'}});
@@ -79,11 +82,28 @@ test('Mobile and desktop transport pages avoid horizontal overflow and permit dr
  await expect(page.getByRole('heading',{level:1,name:'Bus'})).toBeVisible();
 });
 
-test('Marseille RTM metropolitan alerts use actual provider messages and show no fake schedule',async({page})=>{
+test('Marseille real notices allow filtering by actual network, mode and line',async({page})=>{
  await fixtures(page);
  await page.goto('/#/transport/marseille');
- await expect(page.locator('.tl-status-card')).toHaveCount(1);
- await expect(page.locator('.tl-status-card')).toContainText('Travaux sur la ligne');
- await expect(page.locator('.tl-status-card')).toContainText('RTM:M1');
+ await expect(page.locator('.tl-status-card')).toHaveCount(2);
+ await expect(page.locator('.tl-status-card').first()).toContainText('Travaux sur la ligne');
+ await expect(page.locator('.tl-status-card').first()).toContainText('Lignes : M1');
  await expect(page.locator('.tl-departure')).toHaveCount(0);
+ await page.locator('#tl-alert-mode').selectOption('METRO');
+ await expect(page.locator('.tl-status-card')).toHaveCount(1);
+ await expect(page.locator('.tl-status-card')).toContainText('Marseille (RTM)');
+ await page.locator('#tl-alert-mode').selectOption('all');
+ await page.locator('#tl-alert-network').selectOption('Aix lebus');
+ await expect(page.locator('.tl-status-card')).toHaveCount(1);
+ await expect(page.locator('.tl-status-card')).toContainText('Ligne 3');
+ await expect(page.locator('.tl-status-card')).toContainText('Prévue prochainement');
+ await page.locator('#tl-alert-search').fill('M1');
+ await expect(page.locator('.tl-status-card')).toHaveCount(0);
+ await page.locator('#tl-alert-search').fill('');
+ await expect(page.locator('.tl-status-card')).toHaveCount(1);
+ for(const width of [360,390,768,1440]){
+  await page.setViewportSize({width,height:850});
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+ }
 });

@@ -2,6 +2,7 @@ import {
  normalizeSwiss,normalizeTfLArrivals,normalizeTfLSearch,normalizeTfLStatus,
  decodeSncfGtfsRt,normalizeSncfBoard,decodeGtfsServiceAlerts
 } from '../transport-live-data.js';
+import {MARSEILLE_API,MARSEILLE_SOURCE,normalizeMarseilleAlerts} from '../transport-marseille-data.js';
 
 const ALLOWED_MODES=new Set(['train','tram','bus','boat','cableway']);
 const TFL_MODES=new Set(['tube','bus','tram','dlr','overground','elizabeth-line','river-bus']);
@@ -58,13 +59,34 @@ export default async function handler(req,res){
     fetchedAt:new Date().toISOString(),source:'https://api.tfl.gov.uk/'};
    cache='public, max-age=30, s-maxage=90, stale-while-revalidate=45';
   }else if(type==='marseille-alerts'){
-   const bytes=await readUpstream('https://www.data.gouv.fr/api/1/datasets/r/834199c7-2e4f-4ca5-8675-a78894601a77',{binary:true});
-   const decoded=decodeGtfsServiceAlerts(bytes);
-   response={provider:'La Métropole Mobilité · GTFS-RT Service Alerts',fetchedAt:new Date().toISOString(),
-    updated:decoded.updated,alerts:decoded.alerts,entities:decoded.entities,
-    source:'https://www.data.gouv.fr/datasets/information-trafic-en-temps-reel-affectant-les-reseaux-de-transports-en-commun-de-la-metropole-daix-marseille-provence',
-    caveat:'Messages d’information trafic du producteur. Ce flux ne fournit pas les prochains passages par arrêt.'};
-   cache='public, max-age=30, s-maxage=240, stale-while-revalidate=60';
+   // Verified provider-maintained Opendatasoft records. The former GTFS-RT
+   // download link returned HTTP 502 and must not silently fall back to fake alerts.
+   const select='id,title,message,category,criticity,level,lines,lines_final_sname,lines_final_mode,lines_final_subnetwork_name,startvalidity,endvalidity,updatedate';
+   const urlFor=offset=>{
+    const url=new URL(MARSEILLE_API);
+    url.searchParams.set('limit','100');
+    url.searchParams.set('offset',String(offset));
+    url.searchParams.set('select',select);
+    url.searchParams.set('order_by','updatedate DESC');
+    return url.toString();
+   };
+   const first=await readUpstream(urlFor(0));
+   if(!Array.isArray(first?.results))throw Error('Schéma source métropolitaine invalide');
+   const published=Math.max(0,Number(first.total_count)||first.results.length);
+   const pageCount=Math.min(5,Math.ceil(published/100));
+   const remaining=await Promise.allSettled(Array.from({length:Math.max(0,pageCount-1)},(_,i)=>readUpstream(urlFor((i+1)*100))));
+   const all=first.results.slice();
+   let partial=published>500;
+   for(const part of remaining){
+    if(part.status==='fulfilled'&&Array.isArray(part.value?.results))all.push(...part.value.results);
+    else partial=true;
+   }
+   const incidents=normalizeMarseilleAlerts(all,{max:500});
+   response={provider:'Métropole Aix-Marseille-Provence · Open Data',fetchedAt:new Date().toISOString(),
+    ...incidents,publishedCount:published,partial,
+    source:MARSEILLE_SOURCE,
+    caveat:'Perturbations publiées par la Métropole. Validité évaluée à la journée : les plages horaires indiquées dans les messages restent à consulter. Aucun prochain passage ou suivi GPS déduit.'};
+   cache='public, max-age=30, s-maxage=180, stale-while-revalidate=90';
   }else if(type==='sncf'){
    if(q.length>80)return res.status(400).json({error:'Filtre trop long'});
    const bytes=await readUpstream('https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates',{binary:true});

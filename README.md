@@ -8,7 +8,7 @@
 [![Live site](https://img.shields.io/badge/Live-Vercel-black?logo=vercel)](https://atlas-live-data-studio-hichammed13-5976.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Vanilla JS](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/fr/docs/Web/JavaScript)
-[![Modules](https://img.shields.io/badge/Modules-2%20%2F%2015-00bfa5)](#modules)
+[![Modules](https://img.shields.io/badge/Modules-3%20%2F%2015-00bfa5)](#modules)
 
 **[🚀 Ouvrir Atlas Live](https://atlas-live-data-studio-hichammed13-5976.vercel.app)** · [Fonctionnalités](#modules) · [Contribuer](CONTRIBUTING.md)
 
@@ -16,7 +16,7 @@
 
 ## Présentation
 
-Atlas Live est une application web **responsive**, destinée à explorer, filtrer, visualiser et exporter des données publiques. La landing page rassemble **15 univers de données**. **Les modules Météo mondiale et Électricité sont fonctionnels** ; les 13 autres sont en préparation.
+Atlas Live est une application web **responsive**, destinée à explorer, filtrer, visualiser et exporter des données publiques. La landing page rassemble **15 univers de données**. **Météo mondiale, Électricité et Transports** disposent de vues actives ; les 12 autres modules restent à développer.
 
 ## ☁️ Module 01 — Météo mondiale
 
@@ -48,6 +48,18 @@ consommation nationale, prévisions, production par huit filières,
 [Source RTE / ODRE](https://odre.opendatasoft.com/explore/dataset/eco2mix-national-tr/)
 
 > Les données RTE sont provisoires et actualisées environ toutes les 15 minutes. Il s'agit de la **France entière** ; la production par filière n'est pas la même chose que l'origine de l'électricité consommée. L'accès dépend des conditions et quotas ODRE.
+
+## 🚆 Module 03 — Transports publics
+
+Entrée : [Explorer les transports](https://atlas-live-data-studio.vercel.app/#/transport). Les sous-sections séparées couvrent les trains, métros, trams, bus, bateaux, téléphériques et l'information trafic.
+
+- **France / SNCF :** GTFS-RT TripUpdates, suivi des trains par identifiants de course et d'arrêt ; correspondance vers les noms de gares encore partielle.
+- **Suisse :** tableaux de départs par gare ou arrêt, prévisions et retards quand le réseau les publie.
+- **Londres / TfL :** prochains passages par arrêt pour les modes couverts, recherche de station et perturbations de lignes.
+- **Marseille et Métropole :** perturbations réellement publiées par la [Métropole Aix-Marseille-Provence](https://data.ampmetropole.fr/explore/assets/ol-perturbation-la-mobilite/), filtrables par réseau, mode, ligne et texte. Il ne s'agit **pas** encore des prochains passages RTM par arrêt.
+- **Sources et catalogue :** conservation des liens GTFS/GTFS-RT/SIRI en sous-section secondaire.
+
+Les API sont consommées via des routes Vercel à destinations fixes, avec validation, délais et cache. Les données qui ne sont pas fournies (GPS, retards, heures exactes d'une perturbation) ne sont jamais estimées artificiellement. Un test automatisé avec données simulées ne garantit pas la disponibilité de chaque API externe en production.
 
 ## Démonstration
 
@@ -101,7 +113,7 @@ Voir [l'architecture détaillée](docs/ARCHITECTURE.md).
 | --- | --- | --- | --- |
 | 01 | ☁️ Météo mondiale | [Open-Meteo](https://open-meteo.com/) | ✅ MVP |
 | 02 | ⚡ Électricité | [RTE éCO₂mix](https://odre.opendatasoft.com/explore/dataset/eco2mix-national-tr/) | ✅ MVP |
-| 03 | 🚆 Transports | transport.data.gouv.fr | 🕓 À faire |
+| 03 | 🚆 Transports | SNCF, TfL, Suisse, Métropole AMP | ✅ Première version |
 | 04 | 🚲 Vélos partagés | GBFS | 🕓 À faire |
 | 05 | ✈️ Avions | OpenSky | 🕓 À faire |
 | 06 | 🌍 Séismes | USGS | 🕓 À faire |
