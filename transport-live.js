@@ -210,12 +210,20 @@ export function mountTransportLive(root,page='overview'){
   finally{if(token===state.request&&alive()){state.loading=false;draw();}}
  }
  initMarkup();drawControls();draw();load(true);
- let disposeExtras=()=>{};
+ let disposeExtras=()=>{},disposeTrainMap=()=>{};
  import('./transport-extras.js').then(module=>{
   if(!state.disposed&&root.isConnected)disposeExtras=module.mountTransportExtras(root,page);
  }).catch(()=>{});
+ if(page==='trains')import('./transport-train-map.js').then(module=>{
+  if(!state.disposed&&root.isConnected)disposeTrainMap=module.mountTrainMap(root.querySelector('.tl-shell'));
+ }).catch(error=>{
+  if(!state.disposed&&root.isConnected){
+   const h=root.querySelector('.tl-page-head');
+   h?.insertAdjacentHTML('afterend','<p class="tl-caveat">Carte SNCF indisponible : '+esc(error.message)+'</p>');
+  }
+ });
 
  // This timer only runs while the view is mounted in the open browser.
  state.timer=setInterval(()=>{if(!document.hidden&&!state.loading)load(false);},90000);
- return ()=>{state.disposed=true;clearInterval(state.timer);cancel();state.searchRequest++;disposeExtras();};
+ return ()=>{state.disposed=true;clearInterval(state.timer);cancel();state.searchRequest++;disposeTrainMap();disposeExtras();};
 }
