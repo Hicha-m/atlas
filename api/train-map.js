@@ -34,8 +34,10 @@ export default async function handler(req,res){
   const decoded=decodeSncfGtfsRt(bytes);
   const nowMs=Date.now();
   const rows=selectSncfCandidates(decoded,{limit:320,nowMs});
-  const codes=[...new Set(rows.map(r=>uicFromStop(r.stopId)).filter(Boolean))]
-   .slice(0,GEO_BATCH_SIZE*GEO_BATCH_LIMIT);
+  const codes=[...new Set([
+   ...rows.map(r=>uicFromStop(r.stopId)),
+   ...rows.map(r=>uicFromStop(r.segment?.fromStopId))
+  ].filter(Boolean))].slice(0,GEO_BATCH_SIZE*GEO_BATCH_LIMIT);
   const chunks=[];
   for(let i=0;i<codes.length;i+=GEO_BATCH_SIZE){
    const url=stationQuery(codes.slice(i,i+GEO_BATCH_SIZE));
@@ -55,6 +57,7 @@ export default async function handler(req,res){
   return res.status(200).json({
    ...data,provider:'SNCF Voyageurs + SNCF Réseau',fetchedAt:new Date().toISOString(),
    mappedGares:lookup.size,referencePages:chunks.length,referencePagesOk:ok,
+   timeBracketCandidates:rows.filter(r=>r.segment).length,
    referencePartial:ok!==chunks.length,
    provenance:[
     {label:'GTFS-RT TripUpdates',url:'https://transport.data.gouv.fr/datasets/horaires-sncf'},
