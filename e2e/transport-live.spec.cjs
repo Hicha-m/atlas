@@ -30,7 +30,7 @@ test('Transports landing is a mode chooser and opens actual SNCF departures',asy
  const calls=await fixtures(page);
  await page.goto('/#/transport');
  await expect(page.getByRole('heading',{name:/Vos transports/})).toBeVisible();
- await expect(page.locator('.tl-mode-card')).toHaveCount(8);
+ await expect(page.locator('.tl-mode-card')).toHaveCount(9);
  await page.locator('a[href="#/transport/trains"].tl-mode-card').click();
  await expect(page.locator('.tl-departure')).toHaveCount(1);
  await expect(page.locator('.tl-departure')).toContainText('TGV');
