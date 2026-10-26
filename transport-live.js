@@ -208,7 +208,12 @@ export function mountTransportLive(root,page='overview'){
   finally{if(token===state.request&&alive()){state.loading=false;draw();}}
  }
  initMarkup();drawControls();draw();load(true);
+ let disposeExtras=()=>{};
+ import('./transport-extras.js').then(module=>{
+  if(!state.disposed&&root.isConnected)disposeExtras=module.mountTransportExtras(root,page);
+ }).catch(()=>{});
+
  // This timer only runs while the view is mounted in the open browser.
  state.timer=setInterval(()=>{if(!document.hidden&&!state.loading)load(false);},90000);
- return ()=>{state.disposed=true;clearInterval(state.timer);cancel();state.searchRequest++;};
+ return ()=>{state.disposed=true;clearInterval(state.timer);cancel();state.searchRequest++;disposeExtras();};
 }
