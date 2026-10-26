@@ -47,3 +47,34 @@ test('aviation errors are explicit and never cached',async()=>{
   assert.equal(r.code,502);assert.equal(r.headers['Cache-Control'],'no-store');}
  finally{globalThis.fetch=prev;}
 });
+
+test('adsb.lol fallback converts published feet and knots into SI measurements',async()=>{
+ const {normalizeAdsbLolStates}=await aviation();
+ const capture=new Date('2026-10-26T18:00:00Z').getTime();
+ const x=normalizeAdsbLolStates({now:capture,ac:[
+ {hex:'39b415',flight:'AFR123 ',lat:43.3,lon:5.4,seen_pos:4.5,alt_geom:10000,gs:200,track:90},
+ {hex:'39b416',lat:43.2,lon:5.5,seen_pos:300,alt_geom:12000}
+ ]},{now:capture});
+ assert.equal(x.aircraft.length,1);
+ assert.equal(x.aircraft[0].altitudeM,3048);
+ assert.ok(Math.abs(x.aircraft[0].speedMs-102.8888)<0.001);
+ assert.equal(x.aircraft[0].ageSeconds,5);
+ assert.equal(x.aircraft[0].originCountry,'Non communiqué');
+});
+test('when OpenSky fails a fixed-radius adsb.lol endpoint supplies source-attributed positions',async()=>{
+ const {default:handler}=await aviation(),old=globalThis.fetch;
+ const calls=[];
+ globalThis.fetch=async url=>{
+  calls.push(String(url));
+  if(String(url).startsWith('https://opensky-network.org/'))return {ok:false,status:503};
+  assert.equal(String(url),'https://api.adsb.lol/v2/lat/43.3/lon/5.37/dist/125');
+  return {ok:true,json:async()=>({now:Date.now(),ac:[{hex:'39b415',flight:'AFR123',lat:43.3,lon:5.4,seen_pos:2,alt_geom:10000,gs:200}]})};
+ };
+ try{
+  const r=mockRes();await handler({method:'GET',query:{zone:'marseille'}},r);
+  assert.equal(r.code,200);
+  assert.equal(r.body.aircraft.length,1);
+  assert.equal(r.body.provider,'adsb.lol (ODbL 1.0)');
+  assert.equal(calls.length,2);
+ }finally{globalThis.fetch=old;}
+});

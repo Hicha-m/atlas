@@ -9,13 +9,13 @@ export function mountAircraft(root){
  '<section class="ac-controls" aria-label="Filtres du trafic aérien"><div><label for="ac-zone">Région française</label><select id="ac-zone">'+ZONES.map(([id,name])=>'<option value="'+id+'">'+name+'</option>').join('')+'</select></div>'+
  '<label class="ac-ground"><input type="checkbox" id="ac-ground" checked/> Inclure les aéronefs au sol</label>'+
  '<button id="ac-reload" type="button">↻ Actualiser la zone</button></section>'+
- '<p class="ac-disclaimer">Source : OpenSky Network · Positions réelles reçues par des stations ADS-B, pouvant être incomplètes. Les horaires d’arrivée, retards commerciaux et trajets complets ne sont pas déduits. Cache serveur d’environ 15 minutes pour préserver les quotas.</p>'+
+ '<p class="ac-disclaimer">Sources : OpenSky / adsb.lol · Positions reçues par des stations ADS-B, pouvant être incomplètes. Les horaires d’arrivée, retards commerciaux et trajets complets ne sont pas déduits. Cache serveur d’environ 15 minutes pour préserver les quotas.</p>'+
  '<div id="ac-status" class="ac-status" role="status" aria-live="polite">Chargement…</div>'+
  '<div class="ac-layout"><div id="ac-map" class="ac-map" aria-label="Carte des positions d’avions"></div>'+
  '<div class="ac-side"><div class="ac-side-title"><h2>Aéronefs observés</h2><span id="ac-count">0</span></div>'+
  '<div id="ac-selected" class="ac-selected"><p>Sélectionnez un appareil dans la liste ou sur la carte.</p></div>'+
  '<div id="ac-list" class="ac-list"></div></div></div>'+
- '<p class="ac-source">Données © <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer">OpenSky Network</a>. Mise à jour manuelle disponible ; les limites du service et la fraîcheur exacte des observations sont indiquées.</p></div>';
+ '<p class="ac-source">Sources : <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer">OpenSky Network</a> et, en cas d’indisponibilité, <a href="https://www.adsb.lol/" target="_blank" rel="noopener noreferrer">adsb.lol</a> (données ODbL 1.0). Les observations peuvent différer selon la couverture et la fraîcheur des fournisseurs.</p></div>';
  const el=q=>root.querySelector(q);
  const sourceMap=()=>{
   if(map||!window.L)return;
@@ -67,7 +67,7 @@ export function mountAircraft(root){
    if(disposed)return;
    flights=data.aircraft||[];
    const at=data.observedAt?new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(data.observedAt)):'heure indisponible';
-   el('#ac-status').textContent=flights.length+' position(s) ADS-B valide(s), capture source à '+at+'.';
+   el('#ac-status').textContent=flights.length+' position(s) ADS-B valide(s) · '+(data.provider||'Fournisseur non précisé')+' · capture source à '+at+'.';
    render();
   }catch(error){if(error.name!=='AbortError'&&!disposed){flights=[];render();el('#ac-status').textContent='Données indisponibles : '+error.message;}}
   finally{if(!disposed)el('#ac-reload').disabled=false;}
