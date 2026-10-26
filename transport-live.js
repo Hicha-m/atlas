@@ -8,6 +8,7 @@ export const MODES={
  metros:{title:'Métros',icon:'🚇',description:'Prédictions des métros londoniens',providers:['tfl']},
  tramways:{title:'Tramways',icon:'🚊',description:'Départs des tramways suisses et londoniens',providers:['swiss','tfl']},
  bus:{title:'Bus',icon:'🚌',description:'Prochains bus sur les réseaux publiant leurs passages',providers:['tfl','swiss']},
+ avions:{title:'Avions',icon:'✈️',description:'Positions d’aéronefs observées au-dessus de plusieurs régions de France',providers:[]},
  bateaux:{title:'Bateaux',icon:'⛴️',description:'Départs des services lacustres suisses',providers:['swiss']},
  telepheriques:{title:'Téléphériques',icon:'🚠',description:'Départs des remontées présentes dans les données nationales suisses',providers:['swiss']},
  trafic:{title:'État du réseau',icon:'⚠️',description:'Perturbations officiellement communiquées par Transport for London',providers:['tfl-status']}
