@@ -43,8 +43,8 @@ export default async function handler(req,res){
    const from=text(req.query?.from),to=text(req.query?.to);
    const date=text(req.query?.date),time=text(req.query?.time);
    if(from.length<2||to.length<2||from.toLocaleLowerCase()===to.toLocaleLowerCase()||
-      (date&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))||
-      (time&&!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(time)))
+      (date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))||
+      (time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)))
     return res.status(400).json({error:'Départ, destination, date ou heure invalide'});
    const url=new URL('https://transport.opendata.ch/v1/connections');
    url.searchParams.set('from',from);url.searchParams.set('to',to);url.searchParams.set('limit','6');
