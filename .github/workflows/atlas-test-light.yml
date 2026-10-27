@@ -1,0 +1,65 @@
+name: Atlas Test · CDN, Functions et parcours · vérification légère
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/immersive-weather.js'
+      - 'api/train-map.js'
+      - 'api/rail-lines.js'
+      - 'tooling/quality-kit/src/atlas-test-fixtures.mjs'
+      - 'tooling/quality-kit/bin/atlas-vercel-light-audit.mjs'
+      - 'tooling/quality-kit/bin/atlas-vercel-browser-smoke.mjs'
+      - '.github/workflows/atlas-test-light.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atlas-test-fixtures:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'atlas-test/perf-fixtures-20261027'
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate exact project gating and zero provider requests
+        run: node --test tooling/quality-kit/test/atlas-fixtures.test.mjs
+      - name: Check scripts
+        run: |
+          node --check tooling/quality-kit/src/atlas-test-fixtures.mjs
+          node --check tooling/quality-kit/bin/atlas-vercel-light-audit.mjs
+          node --check tooling/quality-kit/bin/atlas-vercel-browser-smoke.mjs
+
+  atlas-test-live-audit:
+    needs: atlas-test-fixtures
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'atlas-test/perf-fixtures-20261027'
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Exactly 13 serial HTTP observations on Atlas Test (NOT load testing)
+        run: node tooling/quality-kit/bin/atlas-vercel-light-audit.mjs
+      - name: Install Chromium for one browser
+        run: npx playwright install --with-deps chromium
+      - name: Single UI session, non-mocked APIs and external tiles blocked
+        run: node tooling/quality-kit/bin/atlas-vercel-browser-smoke.mjs
+      - name: Archive observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-vercel-light-audit-${{ github.run_id }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            monitoring/results/atlas-vercel-light-audit.json
+            monitoring/results/atlas-vercel-browser-smoke.json
