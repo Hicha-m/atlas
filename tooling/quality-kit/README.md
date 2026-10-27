@@ -93,6 +93,8 @@ Le kit n'injecte pas de credentials ni ne journalise les corps des réponses. La
 
 Chaque ligne NDJSON contient horodatage, projet, scénario, code HTTP, durée, HIT/MISS/STALE/UNKNOWN, Age, ancienneté métier, empreinte SHA-256 des champs choisis, taille et erreur.
 
+Chaque campagne génère aussi un fichier **.manifest.json** contenant l'empreinte SHA-256 de la configuration, la cible, la version du contrat, la version Node, le SHA Git disponible et les dates de début/fin. Conserver ce manifeste avec le CSV et le NDJSON pour assurer la traçabilité.
+
 L'agrégation produit : échantillons, taux de succès, p50/p95/p99, HIT parmi les statuts reconnus, âge maximal de la source et nombre d'empreintes distinctes.
 
 **Important :** un HIT CDN n'est PAS une mesure directe des invocations Vercel ou des appels sortants. Croiser avec les métriques de la plateforme avant d'évaluer les économies. Une empreinte stable ne prouve pas qu'un fournisseur n'a pas été interrogé.
