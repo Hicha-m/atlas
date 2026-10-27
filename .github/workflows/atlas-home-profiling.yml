@@ -23,7 +23,14 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx playwright install chromium
-      - name: Profile Atlas Test homepage only, 8 curl and 2 browser loads
+      - name: Check optimized app code and headers
+        run: |
+          node --check app.js
+          node --check tooling/quality-kit/bin/atlas-home-cold-profile.mjs
+          node -e "const x=require('./vercel.json'); if(!x.headers?.length) process.exit(1);"
+      - name: UI regression checks (home, crawler, weather, trains, world)
+        run: npx playwright test e2e/atlas-home-lazy.spec.cjs --project=desktop-chromium
+      - name: Profile current Atlas Test alias (may be prior deployment until promoted)
         run: node tooling/quality-kit/bin/atlas-home-cold-profile.mjs
       - name: Upload profiling trace
         if: always()
