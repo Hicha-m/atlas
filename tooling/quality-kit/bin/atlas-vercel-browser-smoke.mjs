@@ -4,7 +4,7 @@
  * Real browser clicks -> Atlas Test HTTP functions; blocks remote providers,
  * OSM map tiles and any Atlas API not explicitly mocked.
  */
-import {chromium} from 'playwright';
+import {chromium} from '@playwright/test';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 const ORIGIN='https://atlas-live-data-studio-test.vercel.app';
