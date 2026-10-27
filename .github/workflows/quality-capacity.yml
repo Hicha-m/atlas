@@ -109,3 +109,77 @@ jobs:
             monitoring/results/capacity-atlas-profile-local.*
           retention-days: 14
           if-no-files-found: ignore
+
+  atlas-handlers-capacity:
+    name: Atlas real handlers and mocked providers · bounded binary search
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.2.3'
+      - name: Start isolated real Atlas API handlers with provider mocks
+        env:
+          QK_ATLAS_PORT: '8890'
+          QK_ATLAS_SLOTS: '3'
+          QK_ATLAS_WORK_MS: '90'
+        run: |
+          set -euo pipefail
+          node tooling/quality-kit/examples/atlas-local-functions.mjs >/tmp/atlas-handlers.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:8890/__fixture_status -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/atlas-handlers.log
+          exit 1
+      - name: Check real Atlas handlers before loading
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:8890/ -o /dev/null
+          curl -fsS 'http://127.0.0.1:8890/api/immersive-weather?kind=forecast&lat=43.2965&lon=5.3698' -o /dev/null
+          curl -fsS http://127.0.0.1:8890/api/train-map -o /dev/null
+          curl -fsS 'http://127.0.0.1:8890/api/rail-lines?south=42.9&north=43.8&west=4.7&east=5.9' -o /dev/null
+      - name: Binary search for actual Atlas handler journey with mocked upstream
+        run: |
+          node tooling/quality-kit/bin/capacity-search.mjs \
+            --profile monitoring/profiles/atlas-workflow-capacity.json \
+            --min-vus 1 --max-vus 128 --duration-seconds 12 \
+            --repetitions 2 --max-probes 32 \
+            --out monitoring/results/atlas-workflow-capacity-ci.json
+      - name: Verify result and no provider network calls
+        run: |
+          node --input-type=module -e '
+          import {readFileSync} from "node:fs";
+          const d=JSON.parse(readFileSync("monitoring/results/atlas-workflow-capacity-ci.json"));
+          const r=d.result;
+          if(!r.complete||!r.highestPassingVus||
+             r.firstFailingVus===null||
+             r.firstFailingVus-r.highestPassingVus!==1||
+             r.plan.p95LimitMs!==500||r.plan.errorLimit!==0.01||
+             r.plan.thinkTimeMs!==2000)
+            throw Error("Journey capacity boundary or criteria invalid: "+JSON.stringify(r));
+          console.log("LOCAL ATLAS: PASSED VUs",r.highestPassingVus,
+            "FAILED VUs",r.firstFailingVus,"probes",r.probes);
+          '
+          curl -fsS http://127.0.0.1:8890/__fixture_status > monitoring/results/atlas-fixture-status.json
+          node --input-type=module -e '
+          import {readFileSync} from "node:fs";
+          const m=JSON.parse(readFileSync("monitoring/results/atlas-fixture-status.json"));
+          if(!m.realFunctions||m.remoteProviderCalls!==0||m.upstreamMocks<3)
+            throw Error("Invalid isolation or upstream mocks unused");
+          console.log("Local provider mock calls:",m.upstreamMocks,"remote calls",m.remoteProviderCalls);
+          '
+      - name: Archive Atlas real handler capacity
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-real-handlers-capacity-${{ github.run_id }}
+          path: |
+            monitoring/results/atlas-workflow-capacity-ci.*
+            monitoring/results/atlas-fixture-status.json
+          if-no-files-found: ignore
+          retention-days: 14
