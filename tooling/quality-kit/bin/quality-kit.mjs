@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {dirname,resolve} from 'node:path';
 import {loadConfig,pickSuite,authorizeSuite} from '../src/config.mjs';
 import {runSuite} from '../src/runner.mjs';
@@ -81,6 +82,7 @@ async function main(){
   allowRemote:!!opts['allow-remote'],allowUpstream:!!opts['allow-upstream']
  });
  const records=[];
+ const runStartedAt=new Date().toISOString();
  for(const suite of suites){
   const result=await runSuite({config,suite,target,
    allowRemote:!!opts['allow-remote'],allowUpstream:!!opts['allow-upstream']
@@ -92,7 +94,19 @@ async function main(){
   const file=resolve(opts.out);
   await mkdir(dirname(file),{recursive:true});
   await writeFile(file,records.map(record=>JSON.stringify(record)).join('\n')+'\n','utf8');
-  await writeFile(file.replace(/\.ndjson$/i,'')+'.csv',csvReport(records),'utf8');
+  const basename=file.replace(/\.ndjson$/i,'');
+  await writeFile(basename+'.csv',csvReport(records),'utf8');
+  const configBytes=await readFile(resolve(opts.config));
+  const manifest={
+   kit:'@atlas/quality-kit',contractVersion:config.version,
+   project:config.project,startedAt:runStartedAt,completedAt:new Date().toISOString(),
+   targetOrigin:target,suites:suites.map(x=>x.id),
+   configurationSha256:createHash('sha256').update(configBytes).digest('hex'),
+   gitSha:process.env.GITHUB_SHA||null,githubRunId:process.env.GITHUB_RUN_ID||null,
+   nodeVersion:process.version,totalRecords:records.length,
+   note:'Metrics from HTTP probes only; no upstream invocation claims.'
+  };
+  await writeFile(basename+'.manifest.json',JSON.stringify(manifest,null,2)+'\n','utf8');
  }
  if(records.some(x=>!x.ok))process.exitCode=1;
 }
