@@ -99,6 +99,15 @@ L'agrégation produit : échantillons, taux de succès, p50/p95/p99, HIT parmi l
 
 Le rapport est produit **sans réseau** à partir du fichier NDJSON ; on peut le régénérer identiquement.
 
+### Comparer deux campagnes (long terme)
+
+    node tooling/quality-kit/bin/quality-kit.mjs compare \
+      --baseline monitoring/results/semaine-1.ndjson \
+      --current monitoring/results/semaine-2.ndjson \
+      --out monitoring/results/comparaison.md
+
+La comparaison affiche variations de p95, points de taux de HIT et de succès, et avertit si l'un des deux échantillons a moins de 30 mesures. Elle **ne déclenche aucun sondage**. Des chemins, régions ou TTL différents rendent la comparaison non probante.
+
 ## 6. Résilience / injection de pannes
 
 `src/faults.mjs` exporte `fakeFetcher(mode)` :
