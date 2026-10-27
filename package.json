@@ -14,7 +14,8 @@
     "quality:plan": "node tooling/quality-kit/bin/quality-kit.mjs plan --config monitoring/projects/atlas.json",
     "quality:probe:local": "node tooling/quality-kit/bin/quality-kit.mjs probe --config monitoring/projects/atlas.json --suite home --out monitoring/results/local.ndjson",
     "quality:report": "node tooling/quality-kit/bin/quality-kit.mjs report --input monitoring/results/local.ndjson --out monitoring/results/local.md",
-    "quality:capacity:local": "node tooling/quality-kit/bin/capacity-search.mjs --target http://127.0.0.1:8765 --path / --min-vus 1 --max-vus 8 --p95-ms 1000 --duration-seconds 5 --repetitions 2 --max-probes 12"
+    "quality:capacity:local": "node tooling/quality-kit/bin/capacity-search.mjs --target http://127.0.0.1:8765 --path / --min-vus 1 --max-vus 8 --p95-ms 1000 --duration-seconds 5 --repetitions 2 --max-probes 12",
+    "quality:capacity:atlas-profile": "node tooling/quality-kit/bin/capacity-search.mjs --profile monitoring/profiles/atlas-capacity.json --out monitoring/results/capacity-atlas-profile-local.json"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
