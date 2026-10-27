@@ -76,6 +76,9 @@ jobs:
             --p95-ms 1000 --duration-seconds 5 \
             --think-ms 100 --repetitions 2 --max-probes 12 \
             --out monitoring/results/capacity-atlas-static-local.json
+          node tooling/quality-kit/bin/capacity-search.mjs \
+            --profile monitoring/profiles/atlas-capacity.json \
+            --out monitoring/results/capacity-atlas-profile-local.json
       - name: Verify local Atlas static experiment reported a result
         run: |
           node --input-type=module -e '
@@ -86,9 +89,6 @@ jobs:
           '
       - name: Validate configured Atlas p95 500ms, errors 1%, think 2s on localhost
         run: |
-          node tooling/quality-kit/bin/capacity-search.mjs \
-            --profile monitoring/profiles/atlas-capacity.json \
-            --out monitoring/results/capacity-atlas-profile-local.json
           node --input-type=module -e '
           import {readFileSync} from "node:fs";
           const d=JSON.parse(readFileSync("monitoring/results/capacity-atlas-profile-local.json"));
