@@ -1,4 +1,4 @@
-name: Quality Kit · Manual Probe
+name: Quality Kit · Probe & k6 local
 
 on:
   pull_request:
@@ -50,6 +50,22 @@ jobs:
         run: |
           node --test tooling/quality-kit/test/*.test.mjs
           node tooling/quality-kit/bin/quality-kit.mjs validate --config monitoring/projects/atlas.json
+      - name: Vérifier les garde-fous distants sans appel externe
+        run: |
+          set -euo pipefail
+          if node tooling/quality-kit/bin/quality-kit.mjs probe \
+            --config monitoring/projects/atlas.json --suite home \
+            --target https://atlas-live-data-studio.vercel.app; then
+            echo "::error::Accès distant non autorisé accepté par erreur"
+            exit 1
+          fi
+          if node tooling/quality-kit/bin/quality-kit.mjs probe \
+            --config monitoring/projects/atlas.json --suite weather \
+            --target https://atlas-live-data-studio.vercel.app --allow-remote; then
+            echo "::error::Accès au fournisseur sans confirmation accepté par erreur"
+            exit 1
+          fi
+          echo "Les deux tentatives ont été refusées avant toute requête réseau."
       - name: Exécuter une petite sonde, sans charge
         env:
           QK_SUITE: ${{ inputs.suite || 'home' }}
