@@ -6,7 +6,7 @@
 export function validateCapacityPlan(plan={}){
  const p={
   minVus:plan.minVus??1,
-  maxVus:plan.maxVus??16,
+  maxVus:plan.maxVus??256,
   p95LimitMs:plan.p95LimitMs??250,
   errorLimit:plan.errorLimit??0.01,
   minRps:plan.minRps??0,
@@ -14,15 +14,15 @@ export function validateCapacityPlan(plan={}){
   repetitions:plan.repetitions??2,
   durationSeconds:plan.durationSeconds??8,
   thinkTimeMs:plan.thinkTimeMs??100,
-  maxProbes:plan.maxProbes??20
+  maxProbes:plan.maxProbes??36
  };
  const integer=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
- if(!integer(p.minVus,1,16)||!integer(p.maxVus,p.minVus,32)||
+ if(!integer(p.minVus,1,256)||!integer(p.maxVus,p.minVus,512)||
     !integer(p.p95LimitMs,10,10000)||typeof p.errorLimit!=='number'||p.errorLimit<0||p.errorLimit>0.2||
     typeof p.minRps!=='number'||p.minRps<0||p.minRps>1000||
     !integer(p.droppedLimit,0,100)||!integer(p.repetitions,1,3)||
-    !integer(p.durationSeconds,5,60)||!integer(p.thinkTimeMs,0,5000)||
-    !integer(p.maxProbes,2,24))throw Error('Invalid or unsafe capacity plan');
+    !integer(p.durationSeconds,5,180)||!integer(p.thinkTimeMs,0,5000)||
+    !integer(p.maxProbes,2,64))throw Error('Invalid or unsafe capacity plan');
  return p;
 }
 export function assessSample(sample,plan){
@@ -31,6 +31,8 @@ export function assessSample(sample,plan){
  if(!Number.isFinite(sample.errors)||sample.errors<0||sample.errors>1)reasons.push('missing_errors');
  if(!Number.isFinite(sample.rps)||sample.rps<0)reasons.push('missing_rps');
  if(!Number.isInteger(sample.requests)||sample.requests<1)reasons.push('no_requests');
+ if(sample.journeyErrors!==undefined&&Number.isFinite(sample.journeyErrors)&&sample.journeyErrors>plan.errorLimit)reasons.push('journey_errors');
+ if(sample.journeys!==undefined&&(!Number.isInteger(sample.journeys)||sample.journeys<1))reasons.push('no_completed_journeys');
  if(!Number.isInteger(sample.dropped)||sample.dropped<0)reasons.push('missing_drops');
  if(!reasons.length){
   if(sample.p95Ms>plan.p95LimitMs)reasons.push('p95_above_target');

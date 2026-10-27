@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "project": "atlas",
+  "id": "atlas-real-handlers-mocked-upstream-500ms",
+  "description": "Véritable chemin d'exécution des handlers Atlas en local; fournisseurs SNCF et météo entièrement mockés; recherche exponentielle puis dichotomie. Pas une mesure Vercel.",
+  "localOrigin": "http://127.0.0.1:8890",
+  "path": "/",
+  "journey": {
+    "kind": "atlas-workflow",
+    "thinkTimeMs": 2000,
+    "steps": [
+      {
+        "method": "GET",
+        "path": "/",
+        "label": "Ouverture Atlas"
+      },
+      {
+        "method": "GET",
+        "path": "/api/immersive-weather?kind=forecast&lat=43.2965&lon=5.3698",
+        "label": "Prévisions météo Marseille"
+      },
+      {
+        "method": "GET",
+        "path": "/api/train-map",
+        "label": "Carte et temps réels SNCF"
+      },
+      {
+        "method": "GET",
+        "path": "/api/rail-lines?south=42.9&north=43.8&west=4.7&east=5.9",
+        "label": "Tracés ferroviaires officiels"
+      }
+    ],
+    "caveat": "Parcours HTTP séquentiel avec 2 secondes entre étapes. Ne simule pas JavaScript, cartes Leaflet ni les clics Playwright."
+  },
+  "plan": {
+    "minVus": 1,
+    "maxVus": 512,
+    "p95LimitMs": 500,
+    "errorLimit": 0.01,
+    "minRps": 0,
+    "droppedLimit": 0,
+    "repetitions": 3,
+    "durationSeconds": 45,
+    "thinkTimeMs": 2000,
+    "maxProbes": 54
+  },
+  "server": {
+    "fixture": "tooling/quality-kit/examples/atlas-local-functions.mjs",
+    "workMs": 65,
+    "slots": 5,
+    "usesRealHandlers": true,
+    "upstream": "deterministic_mocks",
+    "cdN": false,
+    "environment": "node-local",
+    "production": false
+  },
+  "safety": {
+    "remoteLoad": false,
+    "maxVus": 512,
+    "host": "127.0.0.1",
+    "allEndpoints": "GET"
+  }
+}
