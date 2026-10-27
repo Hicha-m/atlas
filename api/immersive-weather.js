@@ -3,6 +3,7 @@
  * No API keys, arbitrary URL proxying or user-defined provider fields.
  */
 import {forecastUrl,airUrl} from '../weather-immersive-data.js';
+import {fixturesEnabled,fixtureHeaders,weatherFixture} from './_benchmark-fixtures.js';
 
 export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
@@ -20,6 +21,11 @@ export default async function handler(req,res){
   !/^-?\d{1,3}(?:\.\d{1,5})?$/.test(req.query.lon)){
   res.setHeader('Cache-Control','no-store');
   return res.status(400).json({error:'Invalid weather query'});
+ }
+ if(fixturesEnabled()){
+  fixtureHeaders(res);
+  res.setHeader('Cache-Control','public, max-age=60, s-maxage=600, stale-while-revalidate=300');
+  return res.status(200).json(weatherFixture(kind,latitude,longitude));
  }
  const location={name:'Geographic coordinates',country:'',latitude,longitude};
  const url=kind==='forecast'?forecastUrl(location):airUrl(location);
