@@ -1,0 +1,35 @@
+name: Atlas Test | Profiling du chargement initial (sans charge)
+on:
+  pull_request:
+    branches:
+      - atlas-test/perf-fixtures-20261027
+    paths:
+      - 'tooling/quality-kit/bin/atlas-home-cold-profile.mjs'
+      - '.github/workflows/atlas-home-profiling.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  home-profile:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'profiling/home-cold-start-20261027'
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Profile Atlas Test homepage only, 8 curl and 2 browser loads
+        run: node tooling/quality-kit/bin/atlas-home-cold-profile.mjs
+      - name: Upload profiling trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-home-cold-profile-${{ github.run_id }}
+          path: monitoring/results/atlas-home-cold-profile.json
+          if-no-files-found: ignore
+          retention-days: 14
