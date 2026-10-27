@@ -14,7 +14,7 @@ export function validateCapacityPlan(plan={}){
   repetitions:plan.repetitions??2,
   durationSeconds:plan.durationSeconds??8,
   thinkTimeMs:plan.thinkTimeMs??100,
-  maxProbes:plan.maxProbes??12
+  maxProbes:plan.maxProbes??20
  };
  const integer=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
  if(!integer(p.minVus,1,16)||!integer(p.maxVus,p.minVus,32)||
