@@ -6,6 +6,7 @@ import {probe} from '../src/probe.mjs';
 import {runSuite} from '../src/runner.mjs';
 import {summarize} from '../src/metrics.mjs';
 import {markdownReport,csvReport} from '../src/report.mjs';
+import {compareCampaigns,markdownComparison} from '../src/comparison.mjs';
 
 const raw={
  version:1,project:'sample',baseUrl:'http://localhost:3000',
@@ -105,4 +106,17 @@ test('metrics do not confuse cache UNKNOWN with HIT denominator or infer upstrea
  assert.equal(report.sourceAgeSecondsMax,12);
  assert.equal(report.distinctFingerprints,2);
  assert.equal(report.errors.timeout,1);
+});
+
+test('cross-campaign comparison flags small samples and reports cache/latency deltas offline',()=>{
+ const old=[{project:'sample',suite:'health',ok:true,durationMs:100,cacheStatus:'HIT'},
+            {project:'sample',suite:'health',ok:true,durationMs:120,cacheStatus:'MISS'}];
+ const next=[{project:'sample',suite:'health',ok:true,durationMs:150,cacheStatus:'HIT'},
+             {project:'sample',suite:'health',ok:true,durationMs:170,cacheStatus:'HIT'}];
+ const comparison=compareCampaigns(old,next);
+ assert.equal(comparison.length,1);
+ assert.equal(comparison[0].deltaHitPoints,50);
+ assert.equal(comparison[0].sufficientSamples,false);
+ assert.ok(comparison[0].deltaP95Ms>0);
+ assert.match(markdownComparison(old,next),/Insuffisant pour conclure/);
 });
