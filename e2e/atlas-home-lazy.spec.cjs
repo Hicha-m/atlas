@@ -30,8 +30,7 @@ test('home does not request feature-specific styles or external map/chart vendor
  await expect(page.locator('#catalog .card')).toHaveCount(15);
 });
 test('weather immersive loads its CSS/Leaflet only after entering its route',async({page})=>{
- await page.goto('/');
- await page.locator('a[href="#/weather/immersive"]').first().click();
+ await page.goto('/#/weather/immersive');
  await expect(page.locator('#wi-city-quick')).toBeVisible({timeout:20000});
  await expect.poll(()=>page.evaluate(()=>Boolean(window.L?.map))).toBe(true);
  const css=await page.locator('head link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.href));
@@ -39,9 +38,8 @@ test('weather immersive loads its CSS/Leaflet only after entering its route',asy
  expect(css.some(url=>url.includes('leaflet.css'))).toBe(true);
  await page.goto('/#/');
  await expect(page.locator('#catalog .card')).toHaveCount(15);
- await page.locator('#filter').fill('trains');
- // Catalogue filters on module names/descriptions; transport mentions trains
- await expect(page.locator('#catalog .card').count()).resolves.toBeGreaterThanOrEqual(0);
+ await page.locator('#filter').fill('météo');
+ await expect(page.locator('#catalog .card')).toHaveCount(1);
 });
 test('train route imports the rail map UI with all its lazy CSS',async({page})=>{
  await page.goto('/#/transport/trains');
