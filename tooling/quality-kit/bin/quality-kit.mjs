@@ -4,6 +4,7 @@ import {dirname,resolve} from 'node:path';
 import {loadConfig,pickSuite,authorizeSuite} from '../src/config.mjs';
 import {runSuite} from '../src/runner.mjs';
 import {markdownReport,csvReport} from '../src/report.mjs';
+import {markdownComparison} from '../src/comparison.mjs';
 
 const usage=[
  'Quality Kit · Node >=20, sans dépendances',
@@ -11,6 +12,7 @@ const usage=[
  '  quality-kit validate --config <project.json>',
  '  quality-kit probe --config <project.json> --suite <id|all> [--target http://localhost:8765] [--out path.ndjson]',
  '  quality-kit report --input <path.ndjson> [--out path.md]',
+ '  quality-kit compare --baseline <old.ndjson> --current <new.ndjson> [--out comparison.md]',
  '  quality-kit plan --config <project.json> [--target http://localhost:8765]',
  'Remote access is blocked without --allow-remote and an exact allowedRemoteOrigins match.',
  'Suites marked mayCallUpstream also require --allow-upstream.',
@@ -37,6 +39,15 @@ async function main(){
  const [command,...args]=process.argv.slice(2);
  if(!command||command==='help'||command==='--help'){console.log(usage);return;}
  const opts=parse(args);
+ if(command==='compare'){
+  if(!opts.baseline||!opts.current)throw Error('--baseline and --current required');
+  const previous=recordsFromNdjson(await readFile(resolve(opts.baseline),'utf8'));
+  const latest=recordsFromNdjson(await readFile(resolve(opts.current),'utf8'));
+  const content=markdownComparison(previous,latest);
+  if(opts.out){const file=resolve(opts.out);await mkdir(dirname(file),{recursive:true});await writeFile(file,content,'utf8');}
+  console.log(content);
+  return;
+ }
  if(command==='report'){
   if(!opts.input)throw Error('--input required');
   const records=recordsFromNdjson(await readFile(resolve(opts.input),'utf8'));
