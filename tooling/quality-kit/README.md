@@ -136,7 +136,7 @@ k6 run -e QK_TARGET=http://127.0.0.1:3000 -e QK_PATH=/health -e QK_LEVEL=baselin
 ```
 
 Paliers plafonnés :
-- smoke : 1 req/s × 30 s
+- smoke : 1 req/s pendant 30 s (≈ 30 requêtes, une itération de frontière supplémentaire possible)
 - baseline : 2 req/s × 3 min
 - step : montée de 1 à 5 req/s sur 6 min, **localhost uniquement**
 

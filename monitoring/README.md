@@ -41,7 +41,7 @@ Sélectionner :
 
 Par défaut, seule la page statique locale est testée. Le workflow refusera une suite dynamique sur le serveur statique local. Pour un appel distant, le choix explicite de production est nécessaire ; et une suite dynamique exige aussi la confirmation des quotas. Les sondes distantes ne dépassent pas 3 appels par exécution et sont espacées d'au moins 5 secondes.
 
-Le workflow produit des artefacts NDJSON, CSV et rapport Markdown, conservés 14 jours. Il ne lance **jamais** k6.
+Le workflow produit des artefacts NDJSON, CSV, Markdown et manifeste, conservés 14 jours. Sur pull request, il exécute aussi un smoke k6 **uniquement sur un serveur local éphémère** ; il ne lance jamais k6 vers Vercel.
 
 ## Séparation des trois études
 

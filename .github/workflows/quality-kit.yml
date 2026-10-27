@@ -1,6 +1,11 @@
-name: Quality Kit · Manual Probe
+name: Quality Kit · Probe & k6 local
 
 on:
+  pull_request:
+    paths:
+      - 'tooling/quality-kit/**'
+      - 'monitoring/projects/**'
+      - '.github/workflows/quality-kit.yml'
   workflow_dispatch:
     inputs:
       suite:
@@ -45,10 +50,26 @@ jobs:
         run: |
           node --test tooling/quality-kit/test/*.test.mjs
           node tooling/quality-kit/bin/quality-kit.mjs validate --config monitoring/projects/atlas.json
+      - name: Vérifier les garde-fous distants sans appel externe
+        run: |
+          set -euo pipefail
+          if node tooling/quality-kit/bin/quality-kit.mjs probe \
+            --config monitoring/projects/atlas.json --suite home \
+            --target https://atlas-live-data-studio.vercel.app; then
+            echo "::error::Accès distant non autorisé accepté par erreur"
+            exit 1
+          fi
+          if node tooling/quality-kit/bin/quality-kit.mjs probe \
+            --config monitoring/projects/atlas.json --suite weather \
+            --target https://atlas-live-data-studio.vercel.app --allow-remote; then
+            echo "::error::Accès au fournisseur sans confirmation accepté par erreur"
+            exit 1
+          fi
+          echo "Les deux tentatives ont été refusées avant toute requête réseau."
       - name: Exécuter une petite sonde, sans charge
         env:
-          QK_SUITE: ${{ inputs.suite }}
-          QK_TARGET_MODE: ${{ inputs.target }}
+          QK_SUITE: ${{ inputs.suite || 'home' }}
+          QK_TARGET_MODE: ${{ inputs.target || 'local' }}
           QK_PROVIDER_ACK: ${{ inputs.acknowledge_provider_quotas }}
         run: |
           set -euo pipefail
@@ -92,3 +113,25 @@ jobs:
           path: monitoring/results/
           if-no-files-found: ignore
           retention-days: 14
+
+  k6-smoke-local:
+    name: k6 · smoke local uniquement
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.2.3'
+      - name: k6 test sur un serveur HTTP local sans appels externes
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/k6-local.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:8765/ -o /dev/null; then break; fi
+            sleep 1
+          done
+          k6 run -e QK_TARGET=http://127.0.0.1:8765 -e QK_PATH=/ -e QK_LEVEL=smoke tooling/quality-kit/k6/scenario.js
