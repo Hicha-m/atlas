@@ -22,7 +22,7 @@ jobs:
       - name: Install browser dependencies
         run: |
           npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Profile Atlas Test homepage only, 8 curl and 2 browser loads
         run: node tooling/quality-kit/bin/atlas-home-cold-profile.mjs
       - name: Upload profiling trace
