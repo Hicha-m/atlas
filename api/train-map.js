@@ -1,4 +1,5 @@
 import {decodeSncfGtfsRt} from '../transport-live-data.js';
+import {fixturesEnabled,fixtureHeaders,trainFixture} from './_benchmark-fixtures.js';
 import {
  buildSncfTrainMap,normalizeSncfStations,selectSncfCandidates,
  stationQuery,uicFromStop
@@ -28,6 +29,11 @@ export default async function handler(req,res){
  if(req.method!=='GET'){
   res.setHeader('Allow','GET');
   return res.status(405).json({error:'Seule la méthode GET est autorisée'});
+ }
+ if(fixturesEnabled()){
+  fixtureHeaders(res);
+  res.setHeader('Cache-Control','public, max-age=20, s-maxage=120, stale-while-revalidate=90');
+  return res.status(200).json(trainFixture());
  }
  try{
   const bytes=await fetchLimited(GTFS_RT_URL,{timeout:8000,binary:true});
