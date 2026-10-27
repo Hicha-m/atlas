@@ -178,3 +178,7 @@ L'API publique des modules est exposée par `src/index.mjs`. Changer de fourniss
 **Version du contrat : 1.** Toute modification incompatible implique une nouvelle version et une migration documentée.
 
 Consulter `docs/OPERATIONS.md` pour le protocole de campagne, `monitoring/README.md` pour l'intégration Atlas et le workflow manuel, et `examples/project.example.json` pour une configuration totalement générique.
+
+## Test de capacité par recherche binaire (k6)
+
+Le test de capacité limité à localhost est documenté dans [CAPACITY_BINARY_SEARCH.md](docs/CAPACITY_BINARY_SEARCH.md). Il essaie des nombres de VUs croissants et affine la limite par dichotomie suivant p95/erreurs. **Les résultats sur serveur statique local ne mesurent pas Vercel**. Le workflow GitHub Actions `Quality Kit · Local Capacity Binary Search` teste aussi un serveur artificiellement saturé pour vérifier la convergence de l'algorithme.
