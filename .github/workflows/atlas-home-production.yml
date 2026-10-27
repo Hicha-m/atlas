@@ -1,0 +1,34 @@
+name: Atlas | Homepage production regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'index.html'
+      - 'e2e/atlas-home-lazy.spec.cjs'
+      - '.github/workflows/atlas-home-production.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  homepage-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install chromium
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Verify no test-only indexing restriction and no fixture entry points
+        run: |
+          node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');if(/noindex|ATLAS_TEST_FIXTURES|atlas-test-fixtures/.test(h))process.exit(1);"
+          test ! -f vercel.json || ! grep -iq 'noindex' vercel.json
+          test ! -f tooling/quality-kit/src/atlas-test-fixtures.mjs
+      - name: Homepage SEO and module lazy-loading regressions on desktop, tablet, mobile
+        run: npx playwright test e2e/atlas-home-lazy.spec.cjs

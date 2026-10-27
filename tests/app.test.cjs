@@ -9,7 +9,7 @@ const js = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 
 function expression(expr) {
-  const sandbox = { URLSearchParams, Date, console };
+  const sandbox = { URLSearchParams, Date, console, performance: { mark() {}, measure() {} } };
   vm.createContext(sandbox);
   // Do not run the browser initialization; inspect tested pure functions instead.
   vm.runInContext(js.replace(/window\.addEventListener\('hashchange',render\);[\s\S]*$/, ''), sandbox);
@@ -56,7 +56,9 @@ test('responsive styles exist', () => {
 
 
 test('selectable map UI has a supported map library and visible coordinates', () => {
-  assert.match(html, /leaflet@1\.9\.4/);
+  // Mapping is loaded on route entry, not as a blocking homepage dependency.
+  assert.match(js, /leaflet@1\.9\.4/);
+  assert.doesNotMatch(html, /leaflet@1\.9\.4/);
   assert.match(js, /weatherMap\.on\('click'/);
   assert.match(js, /id="weather-map"/);
   assert.match(js, /updateCoordinates\(/);
