@@ -26,8 +26,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Validate exact project gating and zero provider requests
         run: node --test tooling/quality-kit/test/atlas-fixtures.test.mjs
       - name: Check scripts
@@ -46,8 +45,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Exactly 13 serial HTTP observations on Atlas Test (NOT load testing)
         run: node tooling/quality-kit/bin/atlas-vercel-light-audit.mjs
       - name: Install Chromium for one browser
