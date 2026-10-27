@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fixturesEnabled,weatherFixture,trainFixture,railFixture} from '../../../api/_benchmark-fixtures.js';
+import {fixturesEnabled,weatherFixture,trainFixture,railFixture} from '../src/atlas-test-fixtures.mjs';
 import weather from '../../../api/immersive-weather.js';
 import trains from '../../../api/train-map.js';
 import rails from '../../../api/rail-lines.js';
