@@ -1,3 +1,66 @@
+performance.mark('atlas-bootstrap-start');
+// Route-scoped loading: homepage loads no map engine, external visualization
+// library or module-only CSS. Promise cache prevents duplicate downloads.
+const ASSET_CONFIG={
+ 'electricity.css':{url:'/electricity.css',kind:'css'},
+ 'electricity-world.css':{url:'/electricity-world.css',kind:'css'},
+ 'weather-immersive.css':{url:'/weather-immersive.css',kind:'css'},
+ 'transport.css':{url:'/transport.css',kind:'css'},
+ 'transport-live.css':{url:'/transport-live.css',kind:'css'},
+ 'transport-train-map.css':{url:'/transport-train-map.css',kind:'css'},
+ 'transport-aircraft.css':{url:'/transport-aircraft.css',kind:'css'},
+ 'leaflet.css':{url:'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',kind:'css',
+  integrity:'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='},
+ 'leaflet.js':{url:'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',kind:'script',
+  integrity:'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='},
+ 'd3.js':{url:'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',kind:'script'},
+ 'topojson.js':{url:'https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js',kind:'script'}
+};
+const loadedAssets=new Set(),assetRequests=new Map();
+function loadRouteAsset(name){
+ if(loadedAssets.has(name))return Promise.resolve();
+ if(assetRequests.has(name))return assetRequests.get(name);
+ const config=ASSET_CONFIG[name];
+ if(!config) return Promise.reject(Error('Unknown asset '+name));
+ const element=document.createElement(config.kind==='css'?'link':'script');
+ const result=new Promise((resolve,reject)=>{
+  element.onload=()=>{loadedAssets.add(name);assetRequests.delete(name);resolve();};
+  element.onerror=()=>{
+   assetRequests.delete(name);element.remove();
+   reject(Error('Impossible de charger '+name));
+  };
+ });
+ assetRequests.set(name,result);
+ if(config.kind==='css'){element.rel='stylesheet';element.href=config.url;}
+ else{element.src=config.url;element.async=true;}
+ if(config.integrity){element.integrity=config.integrity;element.crossOrigin='anonymous';}
+ document.head.append(element);
+ return result;
+}
+function routeAssets(id){
+ const [root,page]=id.split('/');
+ if(root==='weather'&&page==='immersive')
+  return ['weather-immersive.css','leaflet.css','leaflet.js'];
+ if(root==='weather'&&['overview','map','heatmap'].includes(page))
+  return ['leaflet.css','leaflet.js'];
+ if(root==='transport'){
+  if(page==='catalogue')return ['transport.css'];
+  if(page==='avions')return ['transport.css','transport-aircraft.css','leaflet.css','leaflet.js'];
+  if(page==='trains')return ['transport.css','transport-live.css','transport-train-map.css','leaflet.css','leaflet.js'];
+  return ['transport.css','transport-live.css'];
+ }
+ if(root==='electricity'){
+  if(['europe','world'].includes(page))
+   return ['electricity.css','electricity-world.css','d3.js','topojson.js'];
+  return page?['electricity.css']:[];
+ }
+ return [];
+}
+function pendingRouteAssets(id){
+ const missing=routeAssets(id).filter(name=>!loadedAssets.has(name));
+ return missing.length?Promise.all(missing.map(loadRouteAsset)):null;
+}
+
 const modules = [
  ['weather','Météo mondiale','Conditions et prévisions, température, pluie et vent','☁️','Open-Meteo'],
  ['electricity','Électricité','Production, consommation et mix énergétique','⚡','RTE éCO2mix'],
@@ -89,8 +152,20 @@ function render(){
  heatController?.abort();heatController=null;heatBusy=false;heatRenderedKey=null;
  let id=decodeURIComponent(location.hash.startsWith('#/')?location.hash.slice(2):'');
  const root=id.split('/')[0]||'';
+ if(root)delete $('#app').dataset.hydrateHome;
  nav();
  $('#crumb').textContent=root?'Atlas / '+(modules.find(m=>m[0]===root)?.[1]||'Module'):'Atlas / Explorer';
+ const routeBeforeLoad=location.hash;
+ const loading=pendingRouteAssets(id);
+ if(loading){
+  $('#app').innerHTML='<div class="panel" role="status">Chargement des ressources du module…</div>';
+  loading.then(()=>{if(location.hash===routeBeforeLoad)render();})
+   .catch(error=>{
+    if(location.hash===routeBeforeLoad)
+     $('#app').innerHTML='<div class="panel" role="alert">Ressource du module indisponible : '+safe(error.message)+'</div>';
+   });
+  return;
+ }
  if(!root)home();else if(root==='weather'&&id.split('/')[1]==null){moduleChooser('weather');}else if(root==='electricity'&&id.split('/')[1]==null){moduleChooser('electricity');}else if(root==='weather'&&id.split('/')[1]==='immersive'){
    currentWeatherPage='immersive';
    $('#app').innerHTML='<div class="panel" role="status">Chargement de Météo immersive…</div>';
@@ -135,7 +210,15 @@ function render(){
  }else placeholder(modules.find(m=>m[0]===root));
  window.scrollTo({top:0,behavior:'instant'});
 }
-function home(){ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>03</b><small>Modules opérationnels</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
+function home(){
+ const app=$('#app');
+ if(app.dataset.hydrateHome==='1'&&$('#filter')&&$('#catalog')){
+  delete app.dataset.hydrateHome;
+  $('#filter').addEventListener('input',e=>catalog(e.target.value));
+  return;
+ }
+ delete app.dataset.hydrateHome;
+ $('#app').innerHTML=`<section class="hero"><div class="eyebrow">◉ EXPLOREZ LE MONDE EN DONNÉES</div><h1>Le monde, <span class="accent">en direct.</span><br/>À portée de clic.</h1><p class="lead">Un seul espace pour explorer, comparer, visualiser et exporter les données publiques. Quinze univers, une expérience unifiée.</p><div class="stats"><div class="stat"><b>15</b><small>Univers de données</small></div><div class="stat"><b>03</b><small>Modules opérationnels</small></div><div class="stat"><b>∞</b><small>Possibilités d'exploration</small></div></div></section><div class="section-head"><div><h2>Explorer les données</h2><p>Chaque univers possède son propre tableau de bord interactif.</p></div><input id="filter" class="searchbar" placeholder="⌕  Rechercher un univers..." aria-label="Rechercher un univers" /></div><div class="grid" id="catalog"></div>`;$('#filter').addEventListener('input',e=>catalog(e.target.value));catalog(''); }
 function catalog(query){const list=modules.filter(m=>`${m[1]} ${m[2]} ${m[4]}`.toLowerCase().includes(query.toLowerCase()));$('#catalog').innerHTML=list.map(m=>`<a href="#/${m[0]}" class="card"><span class="pill ${['weather','electricity','transport'].includes(m[0])?'ready':''}">${['weather','electricity','transport'].includes(m[0])?'ACTIF':'À VENIR'}</span><span class="card-icon">${m[3]}</span><h3>${m[1]}</h3><p>${m[2]}</p><span class="arrow">↗</span></a>`).join('')||'<p>Aucun résultat.</p>';}
 function placeholder(m){if(!m){home();return;}$('#app').innerHTML=`<a class="back" href="#/">← Tous les modules</a><div class="eyebrow">MODULE EN PRÉPARATION</div><h1>${m[3]} ${m[1]}</h1><p class="lead">${m[2]}</p><div class="empty"><h2>Ce module sera développé prochainement.</h2><p>Fournisseur prévu : ${safe(m[4])}. Il sera intégré à la même architecture que le module Météo, avec des outils adaptés à ces données.</p><a class="btn" href="#/">Revenir au catalogue →</a></div>`;}
 function weatherView(){
@@ -487,3 +570,5 @@ function initSidebarDrawer(){
 }
 if(typeof document!=='undefined'){const saved=savedWeatherLocation();if(saved)city=saved;const search=$('#global-search');if(search){search.addEventListener('input',e=>{if(location.hash!=='#/'&&location.hash!==''){location.hash='#/';setTimeout(()=>{$('#filter').value=e.target.value;catalog(e.target.value);},0);}else{const filter=$('#filter');if(filter){filter.value=e.target.value;catalog(e.target.value);}}});}}
 initSidebarDrawer();window.addEventListener('hashchange',render);$('#clock').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});render();
+performance.mark('atlas-bootstrap-complete');
+performance.measure('atlas-bootstrap','atlas-bootstrap-start','atlas-bootstrap-complete');
