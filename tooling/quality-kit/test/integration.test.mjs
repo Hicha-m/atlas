@@ -58,6 +58,10 @@ test('portable CLI validates, probes, stores NDJSON/CSV and reports without exte
   assert.ok(lines.every(line=>JSON.parse(line).cacheStatus==='HIT'));
   const csv=await readFile(resolve(dir,'measurements.csv'),'utf8');
   assert.equal(csv.trim().split('\n').length,3);
+  const manifest=JSON.parse(await readFile(resolve(dir,'measurements.manifest.json'),'utf8'));
+  assert.equal(manifest.project,'portable-test');
+  assert.equal(manifest.configurationSha256.length,64);
+  assert.equal(manifest.totalRecords,2);
   const report=await run(process.execPath,[cli,'report','--input',ndjson,
     '--out',resolve(dir,'report.md')],{timeout:4000});
   assert.match(report.stdout,/portable-test \/ health/);
