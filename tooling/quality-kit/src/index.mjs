@@ -7,3 +7,5 @@ export {runSuite} from './runner.mjs';
 export {summarize} from './metrics.mjs';
 export {markdownReport,csvReport} from './report.mjs';
 export {fakeFetcher} from './faults.mjs';
+
+export {compareCampaigns,markdownComparison} from './comparison.mjs';
