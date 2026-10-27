@@ -1,0 +1,50 @@
+name: Atlas Test | Profiling du chargement initial (sans charge)
+on:
+  pull_request:
+    branches:
+      - atlas-test/perf-fixtures-20261027
+    paths:
+      - 'tooling/quality-kit/bin/atlas-home-cold-profile.mjs'
+      - '.github/workflows/atlas-home-profiling.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  home-profile:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'profiling/home-cold-start-20261027'
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: afc240158c62a9f5b8d4280d9dde37faa1c1dba0
+          path: atlas-baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install chromium
+      - name: Check optimized app code and headers
+        run: |
+          node --check app.js
+          node --check tooling/quality-kit/bin/atlas-home-cold-profile.mjs
+          node -e "const x=require('./vercel.json'); if(!x.headers?.length) process.exit(1);"
+      - name: UI regression checks (home, crawler, weather, trains, world)
+        run: npx playwright test e2e/atlas-home-lazy.spec.cjs
+      - name: Compare baseline vs optimized with two localhost servers
+        run: node tooling/quality-kit/bin/atlas-home-local-compare.mjs
+      - name: Profile current Atlas Test alias (may be prior deployment until promoted)
+        run: node tooling/quality-kit/bin/atlas-home-cold-profile.mjs
+      - name: Upload profiling trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-home-cold-profile-${{ github.run_id }}
+          path: |
+            monitoring/results/atlas-home-cold-profile.json
+            monitoring/results/atlas-home-local-comparison.json
+          if-no-files-found: ignore
+          retention-days: 14
