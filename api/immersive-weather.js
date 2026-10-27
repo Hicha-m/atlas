@@ -3,7 +3,7 @@
  * No API keys, arbitrary URL proxying or user-defined provider fields.
  */
 import {forecastUrl,airUrl} from '../weather-immersive-data.js';
-import {fixturesEnabled,fixtureHeaders,weatherFixture} from './_benchmark-fixtures.js';
+import {fixturesEnabled,fixtureHeaders,weatherFixture} from '../tooling/quality-kit/src/atlas-test-fixtures.mjs';
 
 export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
