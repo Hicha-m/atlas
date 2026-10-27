@@ -54,6 +54,8 @@ export function mountTrainMap(shell){
  const $=selector=>panel.querySelector(selector);
  let alive=true,visible=false,loaded=false,loading=false,lastFetch=0,abort=null,timer=null,map=null,points=null,railLayer=null,railAbort=null,railOn=false,railLoading=false,estimateLayer=null,railLines=[];
  let model={markers:[],counts:{ontime:0,late:0,unknown:0,cancelled:0},feedUpdated:null};
+ // Stable Leaflet layers: filtering must not rebuild every station marker.
+ const stationLayers=new Map();
  let kind='all',status='all',query='',selectedId=null,selectedStation=null,isolatedId=null;
  const isAlive=()=>alive&&panel.isConnected;
  const tabSchedules=tabs.querySelector('#tm-tab-horaires'),tabNetwork=tabs.querySelector('#tm-tab-direct');
@@ -68,7 +70,7 @@ export function mountTrainMap(shell){
   const map=new Map();
   for(const item of items){
    const key=stationKey(item);
-   if(!map.has(key))map.set(key,{name:item.stationName,lat:item.lat,lng:item.lng,items:[]});
+   if(!map.has(key))map.set(key,{key,name:item.stationName,lat:item.lat,lng:item.lng,items:[]});
    map.get(key).items.push(item);
   }
   return [...map.values()];
@@ -152,26 +154,45 @@ export function mountTrainMap(shell){
  }
  function drawPoints(){
   if(!map||!points)return;
-  points.clearLayers();
   const showing=controls().show;
-  for(const group of groups(showing)){
+  const grouped=groups(showing);
+  const active=new Set();
+  for(const group of grouped){
+   active.add(group.key);
    const hasLate=group.items.some(x=>x.status==='late');
    const isCancelled=group.items.every(x=>x.status==='cancelled');
    const hasOnTime=group.items.some(x=>x.status==='ontime');
    const tone=isCancelled?'cancelled':hasLate?'late':hasOnTime?'ontime':'unknown';
    const radius=group.items.length>1?Math.min(16,7+Math.log2(group.items.length)*2):6;
-   const circle=L.circleMarker([group.lat,group.lng],{
-    radius,weight:2,color:'#162330',fillColor:TONES[tone],fillOpacity:.91
-   }).addTo(points);
-   circle.bindTooltip(esc(group.name)+' · '+group.items.length+' circulation(s)',{direction:'top'});
-   circle.on('click',()=>{
-    selectedStation=group.name;
-    selectedId=group.items.find(x=>x.status==='late')?.id||group.items[0].id;
-    isolatedId=null;renderDrawer();
-   });
+   const style={radius,weight:2,color:'#162330',fillColor:TONES[tone],fillOpacity:.91};
+   let entry=stationLayers.get(group.key);
+   if(!entry){
+    const circle=L.circleMarker([group.lat,group.lng],style);
+    entry={circle,group};
+    circle.bindTooltip('',{direction:'top'});
+    circle.on('click',()=>{
+     const current=entry.group;
+     selectedStation=current.name;
+     selectedId=current.items.find(x=>x.status==='late')?.id||current.items[0]?.id||null;
+     isolatedId=null;renderDrawer();
+    });
+    stationLayers.set(group.key,entry);
+    circle.addTo(points);
+   }else{
+    entry.group=group;
+    entry.circle.setStyle(style);
+    if(entry.circle.getLatLng().lat!==group.lat||entry.circle.getLatLng().lng!==group.lng)
+     entry.circle.setLatLng([group.lat,group.lng]);
+   }
+   entry.circle.setTooltipContent(esc(group.name)+' · '+group.items.length+' circulation(s)');
+  }
+  for(const [key,entry] of stationLayers){
+   if(active.has(key))continue;
+   points.removeLayer(entry.circle);
+   stationLayers.delete(key);
   }
   renderDrawer();
-  $('#tm-data-footer').textContent=showing.length+' train(s) géoréférencés · '+groups(showing).length+' gare(s) · GTFS-RT, sans GPS · source '+formatDate(model.feedUpdated);
+  $('#tm-data-footer').textContent=showing.length+' train(s) géoréférencés · '+grouped.length+' gare(s) · GTFS-RT, sans GPS · source '+formatDate(model.feedUpdated);
  }
  function redraw(){if(isAlive()&&visible)drawPoints();}
  function initMap(){
