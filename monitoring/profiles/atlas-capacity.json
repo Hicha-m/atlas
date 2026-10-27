@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "project": "atlas",
+  "id": "atlas-p95-500-1pct-think2s",
+  "description": "Profil local et réutilisable pour une campagne de capacité Atlas. Aucune charge sur Vercel.",
+  "localOrigin": "http://127.0.0.1:8765",
+  "path": "/",
+  "journey": {
+    "kind": "closed-loop-http",
+    "steps": [
+      {
+        "method": "GET",
+        "path": "/",
+        "label": "Accueil Atlas local"
+      }
+    ],
+    "thinkTimeMs": 2000,
+    "notes": "Un VU répète une requête GET et attend 2 secondes. Ce n'est PAS une session navigateur réelle."
+  },
+  "plan": {
+    "minVus": 1,
+    "maxVus": 8,
+    "p95LimitMs": 500,
+    "errorLimit": 0.01,
+    "minRps": 0,
+    "droppedLimit": 0,
+    "repetitions": 2,
+    "durationSeconds": 5,
+    "thinkTimeMs": 2000,
+    "maxProbes": 12
+  },
+  "environments": {
+    "localStatic": {
+      "supported": true,
+      "measures": "Fichiers statiques servis sur localhost"
+    },
+    "localFunctions": {
+      "supported": false,
+      "reason": "Nécessite un émulateur Vercel Functions et des fournisseurs mockés"
+    },
+    "vercelProduction": {
+      "supported": false,
+      "reason": "Tests de charge bloqués sans autorisation Vercel"
+    }
+  },
+  "provenance": {
+    "policy": "https://vercel.com/kb/guide/what-s-vercel-s-policy-regarding-load-testing-deployments",
+    "scope": "Préparation et validation locale uniquement"
+  }
+}

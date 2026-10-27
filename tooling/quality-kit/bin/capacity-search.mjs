@@ -24,22 +24,37 @@ const parse=args=>{
 };
 const integer=(opts,name,defaultValue)=>opts[name]===undefined?defaultValue:Number(opts[name]);
 const opts=parse(process.argv.slice(2));
-const origin=opts.target||'http://127.0.0.1:8765';
-const pathname=opts.path||'/';
+// Optional project profile: no framework coupling, no untrusted origin bypass.
+const profile=opts.profile?JSON.parse(await readFile(resolve(opts.profile),'utf8')):null;
+if(profile&&(profile.version!==1||typeof profile.project!=='string'||
+  !/^[a-z][a-z0-9_-]{0,50}$/.test(profile.project)||
+  !profile.plan||typeof profile.plan!=='object'||
+  profile.journey?.kind!=='closed-loop-http'))
+ throw Error('Invalid capacity profile v1');
+const origin=opts.target||profile?.localOrigin||'http://127.0.0.1:8765';
+const pathname=opts.path||profile?.path||'/';
 if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)||
  !pathname.startsWith('/')||pathname.startsWith('//')||pathname.includes('#')||pathname.includes('\\')||pathname.length>500)
  throw Error('Localhost only; remote load testing is disabled (Vercel requires authorization)');
+const chosen=profile?.plan||{};
 const plan=validateCapacityPlan({
- minVus:integer(opts,'min-vus',1),
- maxVus:integer(opts,'max-vus',16),
- p95LimitMs:integer(opts,'p95-ms',250),
- errorLimit:opts['max-error-rate']===undefined?0.01:Number(opts['max-error-rate']),
- minRps:integer(opts,'min-rps',0),
- repetitions:integer(opts,'repetitions',2),
- durationSeconds:integer(opts,'duration-seconds',8),
- thinkTimeMs:integer(opts,'think-ms',100),
- maxProbes:integer(opts,'max-probes',12)
+ minVus:integer(opts,'min-vus',chosen.minVus??1),
+ maxVus:integer(opts,'max-vus',chosen.maxVus??16),
+ p95LimitMs:integer(opts,'p95-ms',chosen.p95LimitMs??250),
+ errorLimit:opts['max-error-rate']===undefined?(chosen.errorLimit??0.01):Number(opts['max-error-rate']),
+ minRps:integer(opts,'min-rps',chosen.minRps??0),
+ repetitions:integer(opts,'repetitions',chosen.repetitions??2),
+ durationSeconds:integer(opts,'duration-seconds',chosen.durationSeconds??8),
+ thinkTimeMs:integer(opts,'think-ms',chosen.thinkTimeMs??100),
+ maxProbes:integer(opts,'max-probes',chosen.maxProbes??12)
 });
+if(profile&&(
+ profile.journey.thinkTimeMs!==plan.thinkTimeMs||
+ !Array.isArray(profile.journey.steps)||
+ profile.journey.steps.length!==1||
+ profile.journey.steps[0].method!=='GET'||
+ profile.journey.steps[0].path!==pathname
+))throw Error('Profile journey and test plan do not agree');
 const out=resolve(opts.out||'monitoring/results/capacity-local.json');
 const executable=opts.k6||'k6';
 async function measure(vus,repeat,configuration){
@@ -78,6 +93,7 @@ const result=await capacitySearch(plan,measure,{onProbe:item=>{
 const manifest={
  dateUTC:new Date().toISOString(),
  kind:'local_capacity_binary_search',target:origin,path:pathname,
+ profile:profile?{project:profile.project,id:profile.id??null,journey:profile.journey}:null,
  nodeVersion:process.version,k6Binary:executable,gitSha:process.env.GITHUB_SHA||null,
  result
 };
