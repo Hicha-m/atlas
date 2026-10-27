@@ -77,12 +77,6 @@ function enter(resolve){
  }else queue.push(resolve);
 }
 const waitSlot=()=>new Promise(resolve=>enter(resolve));
-function result(res){
- return {setHeader:(k,v)=>{res.setHeader(k,v);return resultObject;},
-   status:(n)=>{res.statusCode=n;return resultObject;},
-   json:(value)=>{if(!res.headersSent)res.setHeader('content-type','application/json');
-    res.end(JSON.stringify(value));return resultObject;}};
-}
 const router={ '/api/immersive-weather':weather,'/api/train-map':trains,'/api/rail-lines':rails };
 createServer(async(req,res)=>{
  total++;
