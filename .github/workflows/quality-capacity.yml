@@ -60,11 +60,37 @@ jobs:
             throw Error("Expected completed localhost capacity boundary, got "+JSON.stringify(r));
           console.log("Verified binary search:",r.highestPassingVus,"pass;",r.firstFailingVus,"fails; probes",r.probes);
           '
+      - name: Run separate Atlas static-server baseline locally
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/atlas-static.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:8765/ -o /dev/null; then break; fi
+            sleep 1
+          done
+          node tooling/quality-kit/bin/capacity-search.mjs \
+            --target http://127.0.0.1:8765 \
+            --path / --min-vus 1 --max-vus 8 \
+            --p95-ms 1000 --duration-seconds 5 \
+            --think-ms 100 --repetitions 2 --max-probes 12 \
+            --out monitoring/results/capacity-atlas-static-local.json
+      - name: Verify local Atlas static experiment reported a result
+        run: |
+          node --input-type=module -e '
+          import {readFileSync} from "node:fs";
+          const r=JSON.parse(readFileSync("monitoring/results/capacity-atlas-static-local.json","utf8")).result;
+          if(!r.complete||!r.highestPassingVus)throw Error("Local Atlas static baseline invalid");
+          console.log("Atlas static localhost only, tested up to",r.highestPassingVus,"VUs");
+          '
       - name: Upload reproducible local capacity report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: quality-capacity-local-${{ github.run_id }}
-          path: monitoring/results/capacity-fixture.*
+          path: |
+            monitoring/results/capacity-fixture.*
+            monitoring/results/capacity-atlas-static-local.*
           retention-days: 14
           if-no-files-found: ignore
