@@ -1,0 +1,17 @@
+{
+  "name": "@atlas/quality-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable dependency-free HTTP quality observability and safe k6 harness",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "quality-kit": "./bin/quality-kit.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check bin/quality-kit.mjs && node --check k6/scenario.js"
+  }
+}
