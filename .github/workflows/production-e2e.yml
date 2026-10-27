@@ -1,10 +1,7 @@
 name: Production E2E (real APIs)
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '17 7 * * *'
+  # Release-only: no push or cron triggers. Run manually after an intentional deployment.
   workflow_dispatch:
     inputs:
       heatmap:
@@ -46,8 +43,7 @@ jobs:
       - name: Install Chromium only if cache is empty
         if: steps.browser-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
-      - name: Wait for exact deployed commit (instead of 85s sleep)
-        if: github.event_name == 'push'
+      - name: Verify deployed release SHA before live tests
         shell: bash
         run: |
           set -euo pipefail
