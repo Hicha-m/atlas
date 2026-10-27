@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+/**
+ * Portable controlled capacity test runner. NOT deployed to Vercel.
+ * All network traffic is localhost, never the public hosting endpoint.
+ *
+ * Binary search locates the highest *tested* passing number of closed-loop
+ * VUs under a fixed journey (one GET + think time) and constraints.
+ */
+import {spawn} from 'node:child_process';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {capacitySearch,validateCapacityPlan} from '../src/capacity.mjs';
+
+const scenario=fileURLToPath(new URL('../k6/capacity.js',import.meta.url));
+const parse=args=>{
+ const out={};
+ for(let i=0;i<args.length;i++){
+  const name=args[i];
+  if(!name.startsWith('--')||i+1===args.length)throw Error('Invalid CLI argument '+name);
+  out[name.slice(2)]=args[++i];
+ }
+ return out;
+};
+const integer=(opts,name,defaultValue)=>opts[name]===undefined?defaultValue:Number(opts[name]);
+const opts=parse(process.argv.slice(2));
+const origin=opts.target||'http://127.0.0.1:8765';
+const pathname=opts.path||'/';
+if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)||
+ !pathname.startsWith('/')||pathname.startsWith('//')||pathname.includes('#')||pathname.includes('\\')||pathname.length>500)
+ throw Error('Localhost only; remote load testing is disabled (Vercel requires authorization)');
+const plan=validateCapacityPlan({
+ minVus:integer(opts,'min-vus',1),
+ maxVus:integer(opts,'max-vus',16),
+ p95LimitMs:integer(opts,'p95-ms',250),
+ errorLimit:opts['max-error-rate']===undefined?0.01:Number(opts['max-error-rate']),
+ minRps:integer(opts,'min-rps',0),
+ repetitions:integer(opts,'repetitions',2),
+ durationSeconds:integer(opts,'duration-seconds',8),
+ thinkTimeMs:integer(opts,'think-ms',100),
+ maxProbes:integer(opts,'max-probes',12)
+});
+const out=resolve(opts.out||'monitoring/results/capacity-local.json');
+const executable=opts.k6||'k6';
+async function measure(vus,repeat,configuration){
+ const args=['run','--quiet','--no-color',
+  '-e','QK_TARGET='+origin,'-e','QK_PATH='+pathname,
+  '-e','QK_CAPACITY_VUS='+vus,
+  '-e','QK_CAPACITY_DURATION='+configuration.durationSeconds,
+  '-e','QK_CAPACITY_THINK_MS='+configuration.thinkTimeMs,
+  scenario];
+ let stdout='',stderr='';
+ const elapsed=Date.now();
+ await new Promise((done,reject)=>{
+  const p=spawn(executable,args,{shell:false,env:process.env,stdio:['ignore','pipe','pipe']});
+  const limit=32768;
+  p.stdout.on('data',b=>{stdout=(stdout+b.toString()).slice(-limit);});
+  p.stderr.on('data',b=>{stderr=(stderr+b.toString()).slice(-limit);});
+  p.on('error',reject);
+  p.on('close',code=>{
+   if(code!==0)reject(Error('k6 exit '+code+' '+stderr.slice(-400)));
+   else done();
+  });
+ });
+ const line=stdout.split(/\r?\n/).find(x=>x.startsWith('QK_CAPACITY_JSON:'));
+ if(!line)throw Error('k6 summary not found; stdout '+stdout.slice(-500));
+ const value=JSON.parse(line.slice('QK_CAPACITY_JSON:'.length));
+ if(value.vus!==vus||value.durationSeconds!==configuration.durationSeconds)
+  throw Error('k6 summary mismatched scenario');
+ return {...value,runDurationMs:Date.now()-elapsed,repeat:repeat+1};
+}
+console.log(JSON.stringify({mode:'local-only',origin,path:pathname,plan}));
+const result=await capacitySearch(plan,measure,{onProbe:item=>{
+ console.log(JSON.stringify({testedVus:item.vus,pass:item.pass,
+  worstP95Ms:item.worstP95Ms,minRps:item.minAchievedRps,
+  maxErrors:item.maxErrorRate,reasons:item.evaluations.map(e=>e.reasons)}));
+}});
+const manifest={
+ dateUTC:new Date().toISOString(),
+ kind:'local_capacity_binary_search',target:origin,path:pathname,
+ nodeVersion:process.version,k6Binary:executable,gitSha:process.env.GITHUB_SHA||null,
+ result
+};
+await mkdir(dirname(out),{recursive:true});
+await writeFile(out,JSON.stringify(manifest,null,2)+'\n');
+const rows=['vus,pass,repeat,p95_ms,p99_ms,rps,errors,dropped,requests'];
+for(const x of result.candidates)for(const s of x.samples)
+ rows.push([x.vus,x.pass,s.repeat,s.p95Ms,s.p99Ms,s.rps,s.errors,s.dropped,s.requests].join(','));
+await writeFile(out.replace(/\.json$/i,'')+'.csv',rows.join('\n')+'\n');
+console.log('QK_CAPACITY_RESULT:'+JSON.stringify({
+ highestPassingVus:result.highestPassingVus,firstFailingVus:result.firstFailingVus,
+ ceilingReached:result.ceilingReached,complete:result.complete,
+ probes:result.probes,out
+}));
+if(!result.complete)process.exitCode=2;

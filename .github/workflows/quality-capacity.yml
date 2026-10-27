@@ -1,0 +1,96 @@
+name: Quality Kit · Local Capacity Binary Search
+
+on:
+  pull_request:
+    paths:
+      - 'tooling/quality-kit/**'
+      - '.github/workflows/quality-capacity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capacity-local:
+    name: Binary search k6 · synthetic localhost only
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.2.3'
+      - name: Unit tests for search convergence and safety
+        run: |
+          node --test tooling/quality-kit/test/capacity.test.mjs
+          node --check tooling/quality-kit/bin/capacity-search.mjs
+          node --check tooling/quality-kit/k6/capacity.js
+      - name: Start an artificial capacity-limited local service
+        run: |
+          set -euo pipefail
+          node tooling/quality-kit/examples/capacity-fixture.mjs > /tmp/capacity-fixture.log 2>&1 &
+          echo $! > /tmp/capacity-fixture.pid
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:8877/synthetic-health -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/capacity-fixture.log
+          exit 1
+      - name: Execute bounded binary search against localhost fixture
+        run: |
+          node tooling/quality-kit/bin/capacity-search.mjs \
+            --target http://127.0.0.1:8877 \
+            --path /synthetic-health \
+            --min-vus 1 --max-vus 16 \
+            --p95-ms 250 --max-error-rate 0.01 \
+            --duration-seconds 5 --think-ms 100 \
+            --repetitions 2 --max-probes 20 \
+            --out monitoring/results/capacity-fixture.json
+      - name: Confirm the algorithm found a real passing/failing bracket
+        run: |
+          node --input-type=module -e '
+          import {readFileSync} from "node:fs";
+          const r=JSON.parse(readFileSync("monitoring/results/capacity-fixture.json","utf8")).result;
+          if(!r.complete||!(r.highestPassingVus>=1)||
+             !(r.firstFailingVus>r.highestPassingVus)||
+             r.firstFailingVus-r.highestPassingVus!==1)
+            throw Error("Expected completed localhost capacity boundary, got "+JSON.stringify(r));
+          console.log("Verified binary search:",r.highestPassingVus,"pass;",r.firstFailingVus,"fails; probes",r.probes);
+          '
+      - name: Run separate Atlas static-server baseline locally
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/atlas-static.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:8765/ -o /dev/null; then break; fi
+            sleep 1
+          done
+          node tooling/quality-kit/bin/capacity-search.mjs \
+            --target http://127.0.0.1:8765 \
+            --path / --min-vus 1 --max-vus 8 \
+            --p95-ms 1000 --duration-seconds 5 \
+            --think-ms 100 --repetitions 2 --max-probes 12 \
+            --out monitoring/results/capacity-atlas-static-local.json
+      - name: Verify local Atlas static experiment reported a result
+        run: |
+          node --input-type=module -e '
+          import {readFileSync} from "node:fs";
+          const r=JSON.parse(readFileSync("monitoring/results/capacity-atlas-static-local.json","utf8")).result;
+          if(!r.complete||!r.highestPassingVus)throw Error("Local Atlas static baseline invalid");
+          console.log("Atlas static localhost only, tested up to",r.highestPassingVus,"VUs");
+          '
+      - name: Upload reproducible local capacity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-capacity-local-${{ github.run_id }}
+          path: |
+            monitoring/results/capacity-fixture.*
+            monitoring/results/capacity-atlas-static-local.*
+          retention-days: 14
+          if-no-files-found: ignore
