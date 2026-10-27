@@ -22,7 +22,7 @@ test('portable schema validates projects and prevents open URL proxying',()=>{
  assert.throws(()=>validateConfig({...raw,baseUrl:'http://localhost:3000/api'}),/origin/);
  assert.throws(()=>validateConfig({...raw,suites:[{...raw.suites[0],path:'//evil.example.com'}]}),/relative path/);
  assert.throws(()=>validateConfig({...raw,suites:[{...raw.suites[0],samples:999}]}),/timing/);
- assert.throws(()=>validateConfig({...raw,suites:[...raw.suites[0],raw.suites[0]]}),/suite id/);
+ assert.throws(()=>validateConfig({...raw,suites:[raw.suites[0],raw.suites[0]]}),/suite id/);
  assert.deepEqual(authorizeTarget(config,'http://localhost:3000'),{remote:false});
  assert.throws(()=>authorizeTarget(config,'https://sample.example.org'),/blocked/);
  assert.deepEqual(authorizeTarget(config,'https://sample.example.org',{allowRemote:true}),{remote:true,upstreamAllowed:false});
