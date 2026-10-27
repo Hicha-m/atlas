@@ -1,5 +1,5 @@
 import {decodeSncfGtfsRt} from '../transport-live-data.js';
-import {fixturesEnabled,fixtureHeaders,trainFixture} from './_benchmark-fixtures.js';
+import {fixturesEnabled,fixtureHeaders,trainFixture} from '../tooling/quality-kit/src/atlas-test-fixtures.mjs';
 import {
  buildSncfTrainMap,normalizeSncfStations,selectSncfCandidates,
  stationQuery,uicFromStop
