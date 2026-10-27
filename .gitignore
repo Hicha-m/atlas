@@ -9,3 +9,7 @@ dist/
 *.log
 .vscode/
 .idea/
+
+# Local quality-kit measurements — keep raw telemetry out of Git.
+monitoring/results/
+tooling/quality-kit/results/
