@@ -61,3 +61,11 @@ Pour afficher la vraie position mouvante des trains il faudrait un flux GTFS-RT 
 - L’algorithme mesure la distance curviligne sur la ligne RFN entre les deux projections de gare puis applique le progrès horaire. Le résultat est une estimation basse confiance, jamais un GPS. Aucune projection si la correspondance est absente ou incertaine.
 - Le GTFS statique SNCF 2026 n’inclut pas shapes.txt. Les TripUpdates peuvent omettre les arrêts déjà passés. La disponibilité réelle de l’estimation n’est donc PAS garantie ; on conserve les repères de prochain arrêt.
 - Aucun mouvement animé automatiquement et aucune interpolation hors des bornes.
+
+## Optimisation des repères — 27 octobre 2026
+
+- Les marqueurs Leaflet sont désormais réutilisés par code UIC de gare lors des changements de filtre, de recherche et des actualisations ; seuls les repères apparus ou disparus sont ajoutés ou retirés.
+- Les styles, positions, infobulles et listes de trains d'un repère existant sont mis à jour sans recréer son cercle ni son gestionnaire de clic.
+- Un regroupement des trains par gare est calculé une seule fois par affichage. Le rendu Canvas et les paramètres réseau/API existants restent inchangés.
+- Cette optimisation vise le travail de rendu côté navigateur ; elle n'accélère pas directement la réponse de `/api/train-map` ou les tuiles OpenStreetMap. Mesurer ces temps séparément avant toute conclusion chiffrée.
+- Vérifier dans Playwright les sélections, filtres, recherches, actualisations et carte sur mobile avant fusion.
