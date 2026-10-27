@@ -1,4 +1,4 @@
-import {fixturesEnabled,fixtureHeaders,railFixture} from './_benchmark-fixtures.js';
+import {fixturesEnabled,fixtureHeaders,railFixture} from '../tooling/quality-kit/src/atlas-test-fixtures.mjs';
 import {
  validateRailBounds,railLinesQuery,normalizeRailGeometry,RAIL_GEOMETRY_SOURCE
 } from '../transport-rail-lines-data.js';
