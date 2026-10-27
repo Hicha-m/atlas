@@ -1,6 +1,11 @@
 name: Quality Kit · Manual Probe
 
 on:
+  pull_request:
+    paths:
+      - 'tooling/quality-kit/**'
+      - 'monitoring/projects/**'
+      - '.github/workflows/quality-kit.yml'
   workflow_dispatch:
     inputs:
       suite:
@@ -47,8 +52,8 @@ jobs:
           node tooling/quality-kit/bin/quality-kit.mjs validate --config monitoring/projects/atlas.json
       - name: Exécuter une petite sonde, sans charge
         env:
-          QK_SUITE: ${{ inputs.suite }}
-          QK_TARGET_MODE: ${{ inputs.target }}
+          QK_SUITE: ${{ inputs.suite || 'home' }}
+          QK_TARGET_MODE: ${{ inputs.target || 'local' }}
           QK_PROVIDER_ACK: ${{ inputs.acknowledge_provider_quotas }}
         run: |
           set -euo pipefail
