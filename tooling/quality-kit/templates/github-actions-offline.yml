@@ -1,0 +1,35 @@
+# Copy to .github/workflows/quality-kit-offline.yml in another project.
+# Change the config path to monitoring/projects/<project>.json after setup.
+# This template NEVER calls a public API or generates a production load.
+name: Quality Kit · Offline Validation
+on:
+  push:
+    paths:
+      - 'tooling/quality-kit/**'
+      - 'monitoring/projects/**'
+  pull_request:
+    paths:
+      - 'tooling/quality-kit/**'
+      - 'monitoring/projects/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Portable core tests
+        run: node --test tooling/quality-kit/test/*.test.mjs
+      - name: Portable configuration (replace with your own JSON when ready)
+        run: |
+          node tooling/quality-kit/bin/quality-kit.mjs validate \
+            --config tooling/quality-kit/examples/project.example.json
+          node tooling/quality-kit/bin/quality-kit.mjs plan \
+            --config tooling/quality-kit/examples/project.example.json

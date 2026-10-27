@@ -9,7 +9,11 @@
     "check": "node --check app.js && node --check electricity.js && node --check electricity-data.js && node --check electricity-world.js && node --check electricity-world-data.js && node --check electricity-europe-live-data.js && node --check api/europe-power.js && node --check api/deployment-revision.js && node --check scripts/wait-for-deployment.mjs && node --check weather-immersive.js && node --check weather-immersive-data.js && node --check api/immersive-weather.js && node --check transport.js && node --check api/transport-catalogue.js && node --check transport-live.js && node --check transport-live-data.js && node --check api/transport-live.js && node --check transport-marseille-data.js && node --check transport-extras.js && node --check transport-aircraft.js && node --check api/aircraft-live.js && node --check transport-train-map.js && node --check transport-train-map-data.js && node --check api/train-map.js && node --check transport-rail-lines-data.js && node --check transport-train-estimate.js && node --check api/rail-lines.js",
     "test:live": "playwright test -c playwright.production.config.cjs",
     "test:visual": "playwright test -c playwright.visual.config.cjs",
-    "test:visual:update": "playwright test -c playwright.visual.config.cjs --update-snapshots"
+    "test:visual:update": "playwright test -c playwright.visual.config.cjs --update-snapshots",
+    "quality:check": "node --test tooling/quality-kit/test/*.test.mjs && node tooling/quality-kit/bin/quality-kit.mjs validate --config monitoring/projects/atlas.json",
+    "quality:plan": "node tooling/quality-kit/bin/quality-kit.mjs plan --config monitoring/projects/atlas.json",
+    "quality:probe:local": "node tooling/quality-kit/bin/quality-kit.mjs probe --config monitoring/projects/atlas.json --suite home --out monitoring/results/local.ndjson",
+    "quality:report": "node tooling/quality-kit/bin/quality-kit.mjs report --input monitoring/results/local.ndjson --out monitoring/results/local.md"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

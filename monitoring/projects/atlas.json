@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "project": "atlas",
+  "baseUrl": "http://127.0.0.1:8765",
+  "allowedRemoteOrigins": [
+    "https://atlas-live-data-studio.vercel.app"
+  ],
+  "adapter": "vercel",
+  "suites": [
+    {
+      "id": "home",
+      "path": "/",
+      "format": "text",
+      "samples": 3,
+      "intervalMs": 1000,
+      "timeoutMs": 5000,
+      "maxBytes": 262144,
+      "expectedStatus": 200,
+      "mayCallUpstream": false,
+      "ttlHintSeconds": null,
+      "fields": []
+    },
+    {
+      "id": "weather",
+      "path": "/api/immersive-weather?kind=forecast&lat=43.2965&lon=5.3698",
+      "format": "json",
+      "samples": 2,
+      "intervalMs": 5000,
+      "timeoutMs": 12000,
+      "maxBytes": 2097152,
+      "expectedStatus": 200,
+      "mayCallUpstream": true,
+      "ttlHintSeconds": 600,
+      "fields": [
+        {
+          "path": "current",
+          "type": "object",
+          "required": true
+        },
+        {
+          "path": "hourly.time",
+          "type": "array",
+          "required": true
+        },
+        {
+          "path": "daily.time",
+          "type": "array",
+          "required": true
+        }
+      ],
+      "hashPaths": [
+        "current.temperature_2m",
+        "current.precipitation",
+        "hourly.time.0"
+      ]
+    },
+    {
+      "id": "trains",
+      "path": "/api/train-map",
+      "format": "json",
+      "samples": 2,
+      "intervalMs": 5000,
+      "timeoutMs": 20000,
+      "maxBytes": 3145728,
+      "expectedStatus": 200,
+      "mayCallUpstream": true,
+      "ttlHintSeconds": 120,
+      "fields": [
+        {
+          "path": "markers",
+          "type": "array",
+          "required": true
+        },
+        {
+          "path": "counts",
+          "type": "object",
+          "required": true
+        },
+        {
+          "path": "locationPrecision",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hashPaths": [
+        "sourceTotal",
+        "totalWithAnchors",
+        "feedUpdated"
+      ],
+      "sourceTimestampPath": "feedUpdated"
+    },
+    {
+      "id": "rail",
+      "path": "/api/rail-lines?south=42.9&north=43.8&west=4.7&east=5.9",
+      "format": "json",
+      "samples": 2,
+      "intervalMs": 5000,
+      "timeoutMs": 20000,
+      "maxBytes": 3145728,
+      "expectedStatus": 200,
+      "mayCallUpstream": true,
+      "ttlHintSeconds": 86400,
+      "fields": [
+        {
+          "path": "lines",
+          "type": "array",
+          "required": true
+        },
+        {
+          "path": "nature",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hashPaths": [
+        "distinctLines",
+        "pointCount",
+        "published"
+      ]
+    },
+    {
+      "id": "marseille",
+      "path": "/api/transport-live?provider=marseille-alerts",
+      "format": "json",
+      "samples": 2,
+      "intervalMs": 5000,
+      "timeoutMs": 18000,
+      "maxBytes": 2097152,
+      "expectedStatus": 200,
+      "mayCallUpstream": true,
+      "ttlHintSeconds": 180,
+      "fields": [
+        {
+          "path": "alerts",
+          "type": "array",
+          "required": true
+        },
+        {
+          "path": "provider",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hashPaths": [
+        "updated",
+        "publishedCount"
+      ],
+      "sourceTimestampPath": "updated"
+    }
+  ]
+}

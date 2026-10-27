@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "project": "example",
+  "baseUrl": "http://localhost:3000",
+  "allowedRemoteOrigins": [],
+  "adapter": "generic",
+  "suites": [
+    {
+      "id": "homepage",
+      "path": "/",
+      "format": "text",
+      "samples": 2,
+      "intervalMs": 1000,
+      "timeoutMs": 5000,
+      "maxBytes": 262144,
+      "expectedStatus": 200,
+      "fields": [],
+      "mayCallUpstream": false
+    },
+    {
+      "id": "health",
+      "path": "/health",
+      "format": "json",
+      "samples": 2,
+      "intervalMs": 1000,
+      "timeoutMs": 5000,
+      "maxBytes": 262144,
+      "expectedStatus": 200,
+      "mayCallUpstream": false,
+      "fields": [
+        {
+          "path": "status",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hashPaths": [
+        "status"
+      ]
+    }
+  ]
+}

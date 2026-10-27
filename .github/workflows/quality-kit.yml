@@ -1,0 +1,94 @@
+name: Quality Kit · Manual Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite Atlas à mesurer (GET, maximum 3 échantillons distants)"
+        type: choice
+        required: true
+        default: home
+        options:
+          - home
+          - weather
+          - trains
+          - rail
+          - marseille
+      target:
+        description: "Local (serveur statique) ou production explicite"
+        type: choice
+        required: true
+        default: local
+        options:
+          - local
+          - production
+      acknowledge_provider_quotas:
+        description: "Je confirme les droits et quotas des API externes (requis hors home en production)"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Petite sonde HTTP documentée
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vérifier le moteur et la configuration (hors réseau)
+        run: |
+          node --test tooling/quality-kit/test/*.test.mjs
+          node tooling/quality-kit/bin/quality-kit.mjs validate --config monitoring/projects/atlas.json
+      - name: Exécuter une petite sonde, sans charge
+        env:
+          QK_SUITE: ${{ inputs.suite }}
+          QK_TARGET_MODE: ${{ inputs.target }}
+          QK_PROVIDER_ACK: ${{ inputs.acknowledge_provider_quotas }}
+        run: |
+          set -euo pipefail
+          mkdir -p monitoring/results
+          cmd=(node tooling/quality-kit/bin/quality-kit.mjs probe
+               --config monitoring/projects/atlas.json
+               --suite "$QK_SUITE" --out monitoring/results/quality-manual.ndjson)
+          if [[ "$QK_TARGET_MODE" == "local" ]]; then
+            if [[ "$QK_SUITE" != "home" ]]; then
+              echo "::error::Un serveur HTTP statique ne sert pas les routes /api. Choisissez home ou un déploiement autorisé."
+              exit 1
+            fi
+            python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/quality-local.log 2>&1 &
+            local_pid=$!
+            trap 'kill "$local_pid" 2>/dev/null || true' EXIT
+            sleep 2
+          elif [[ "$QK_TARGET_MODE" == "production" ]]; then
+            cmd+=(--target https://atlas-live-data-studio.vercel.app --allow-remote)
+            if [[ "$QK_SUITE" != "home" ]]; then
+              if [[ "$QK_PROVIDER_ACK" != "true" ]]; then
+                echo "::error::Confirmation explicite des quotas fournisseurs obligatoire."
+                exit 1
+              fi
+              cmd+=(--allow-upstream)
+            fi
+          else
+            echo "::error::Mode inconnu."
+            exit 1
+          fi
+          "${cmd[@]}"
+      - name: Rapport lisible (ne provoque pas de requêtes)
+        if: always()
+        run: |
+          if [[ -f monitoring/results/quality-manual.ndjson ]]; then
+            node tooling/quality-kit/bin/quality-kit.mjs report               --input monitoring/results/quality-manual.ndjson               --out monitoring/results/quality-manual.md
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-kit-${{ github.run_id }}
+          path: monitoring/results/
+          if-no-files-found: ignore
+          retention-days: 14
