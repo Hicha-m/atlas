@@ -1,3 +1,4 @@
+import {fixturesEnabled,fixtureHeaders,railFixture} from './_benchmark-fixtures.js';
 import {
  validateRailBounds,railLinesQuery,normalizeRailGeometry,RAIL_GEOMETRY_SOURCE
 } from '../transport-rail-lines-data.js';
@@ -24,6 +25,11 @@ export default async function handler(req,res){
  }
  const bounds=validateRailBounds(req.query);
  if(!bounds)return res.status(400).json({error:'Carte : zoomez sur une zone ferroviaire française'});
+ if(fixturesEnabled()){
+  fixtureHeaders(res);
+  res.setHeader('Cache-Control','public, max-age=120, s-maxage=86400, stale-while-revalidate=3600');
+  return res.status(200).json(railFixture(bounds));
+ }
  try{
   const first=await readRailPage(railLinesQuery(bounds));
   if(!Array.isArray(first?.results))throw Error('Schéma du référentiel invalide');
