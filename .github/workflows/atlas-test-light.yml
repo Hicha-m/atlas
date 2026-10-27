@@ -2,6 +2,7 @@ name: Atlas Test · CDN, Functions et parcours · vérification légère
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
     paths:
       - 'api/immersive-weather.js'
       - 'api/train-map.js'
@@ -37,7 +38,7 @@ jobs:
 
   atlas-test-live-audit:
     needs: atlas-test-fixtures
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'atlas-test/perf-fixtures-20261027'
+    if: github.event_name == 'workflow_dispatch' || (github.head_ref == 'atlas-test/perf-fixtures-20261027' && contains(github.event.pull_request.title, '[run-atlas-audit]'))
     runs-on: ubuntu-latest
     timeout-minutes: 13
     steps:
